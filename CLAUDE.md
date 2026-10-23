@@ -11,6 +11,6 @@ Après chaque modification (code, suppression, config), mets à jour tous les fi
 
 ## Contexte
 
-- App Expo (SDK 57) dans `mobile/`. La partie web d'origine a été supprimée : seul le mobile reste.
+- App Expo (SDK 58) dans `mobile/`. La partie web d'origine a été supprimée : seul le mobile reste.
 - Interface en français, montants en FCFA.
 - Avant de conclure : `npx tsc --noEmit`, `npx eslint src`, `npx jest`.

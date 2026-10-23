@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glyph } from '@/components/Icon';
+import { Bump, CountText, PressScale } from '@/components/motion';
 import { LineChart } from '@/components/LineChart';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { Screen } from '@/components/Screen';
@@ -43,9 +44,13 @@ function Stat({ kind, value }: { kind: 'in' | 'out'; value: number }) {
         <Glyph name={isIn ? 'up' : 'down'} color={isIn ? t.inn : t.out} />
       </View>
       <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute }}>{isIn ? 'Entrées' : 'Sorties'}</Text>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={{ fontFamily: fonts.display700, fontSize: 22, letterSpacing: -0.5, color: t.ink, marginTop: 2 }}>
-        {fcfa(value)}
-      </Text>
+      <CountText
+        value={value}
+        format={fcfa}
+        adjustsFontSizeToFit
+        numberOfLines={1}
+        style={{ fontFamily: fonts.display700, fontSize: 22, letterSpacing: -0.5, color: t.ink, marginTop: 2 }}
+      />
     </View>
   );
 }
@@ -112,15 +117,18 @@ export default function Home() {
       </View>
       <Animated.View entering={reduce ? undefined : FadeInDown.duration(800)} style={{ alignItems: 'center', marginTop: 30 }}>
         <Text style={{ fontFamily: fonts.body500, fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>Disponible</Text>
-        <Text
+        <CountText
+          intro
+          value={total}
+          format={(n) => `${n < 0 && Math.round(n) !== 0 ? '−' : ''}${nf(Math.abs(n))}`}
           adjustsFontSizeToFit
           numberOfLines={1}
           style={{ fontFamily: fonts.display800, fontSize: 48, letterSpacing: -1.7, color: '#fff', marginTop: 6 }}>
-          {total < 0 ? '−' : ''}
-          {nf(Math.abs(total))}
-          <Text style={{ fontSize: 22, letterSpacing: 0, opacity: 0.55 }}>{' FCFA'}</Text>
-        </Text>
-        <View style={{ marginTop: 10, backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 }}>
+          <Text style={{ fontSize: 22, letterSpacing: 0, opacity: 0.55 }}>{' FCFA'}</Text>
+        </CountText>
+        <Bump
+          trigger={daily?.perDay ?? stats.net}
+          style={{ marginTop: 10, backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 }}>
           <Text style={{ fontFamily: fonts.body600, fontSize: 13, color: '#fff' }}>
             {!daily
               ? `${fcfaSigned(stats.net)} sur le mois`
@@ -130,7 +138,7 @@ export default function Home() {
                   ? `${fcfa(daily.perDay)} à dépenser aujourd\u2019hui`
                   : `≈ ${fcfa(daily.perDay)} par jour jusqu\u2019à la fin du mois`}
           </Text>
-        </View>
+        </Bump>
       </Animated.View>
     </LinearGradient>
   );
@@ -142,11 +150,12 @@ export default function Home() {
         <Stat kind="in" value={stats.inn} />
         <Stat kind="out" value={stats.out} />
       </View>
-      <Pressable
+      <PressScale
         accessibilityRole="button"
         accessibilityLabel={`Caisse économies, ${fcfa(pot)} en caisse. Ouvrir`}
         onPress={() => router.push('/savings')}
-        style={({ pressed }) => [
+        scaleTo={0.98}
+        style={[
           {
             marginTop: 12,
             backgroundColor: t.card,
@@ -154,7 +163,6 @@ export default function Home() {
             borderWidth: 1,
             borderRadius: 24,
             padding: 16,
-            opacity: pressed ? 0.85 : 1,
           },
           shadow(t),
         ]}>
@@ -178,7 +186,7 @@ export default function Home() {
             Mets un peu d{'\u2019'}argent de côté pour commencer.
           </Text>
         )}
-      </Pressable>
+      </PressScale>
       {alerts.length > 0 && (
         <Pressable
           accessibilityRole="button"

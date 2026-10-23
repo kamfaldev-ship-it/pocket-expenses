@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { CatGlyph } from './Icon';
+import { PressScale } from './motion';
 import { fonts, useTheme, type Theme } from '@/theme';
 import type { Category } from '@/lib/types';
 
@@ -94,12 +95,9 @@ export function Button({
   const bg = variant === 'solid' ? t.brand : variant === 'ghost' ? t.brandSoft : t.outSoft;
   const fg = variant === 'solid' ? '#fff' : variant === 'ghost' ? (t.dark ? '#B9B3FF' : t.brand) : t.out;
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [s.btn, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
+    <PressScale accessibilityRole="button" onPress={onPress} scaleTo={0.97} style={[s.btn, { backgroundColor: bg }, style]}>
       <Text style={{ fontFamily: fonts.body700, fontSize: 16, color: fg }}>{label}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 

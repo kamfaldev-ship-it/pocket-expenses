@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, { LinearTransition, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { CatBadge, shadow } from './ui';
 import { Glyph } from './Icon';
+import { PressScale } from './motion';
 import { dayMonthShort } from '@/lib/dates';
 import { fcfa } from '@/lib/format';
 import { findCat } from '@/lib/selectors';
@@ -26,13 +27,15 @@ export function TransactionRow({ tx, cats, onEdit, onDelete }: Props) {
   return (
     <Animated.View
       layout={reduce ? undefined : LinearTransition.duration(250)}
+      exiting={reduce ? undefined : FadeOut.duration(160)}
       style={[
         { backgroundColor: t.card, borderColor: t.line, borderWidth: 1, borderRadius: 22, marginBottom: 8, overflow: 'hidden' },
         shadow(t),
       ]}>
-      <Pressable
+      <PressScale
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
+        scaleTo={0.985}
         onPress={() => setOpen((o) => !o)}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 }}>
         <CatBadge cat={cat} />
@@ -46,7 +49,7 @@ export function TransactionRow({ tx, cats, onEdit, onDelete }: Props) {
           {isIn ? '+' : '−'}
           {fcfa(tx.amount)}
         </Text>
-      </Pressable>
+      </PressScale>
       {open && (
         <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
           {tx.note ? (
