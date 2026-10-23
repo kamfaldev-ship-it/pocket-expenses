@@ -1,9 +1,0 @@
-{
-  "appId": "com.kamfal.pocket",
-  "appName": "Pocket",
-  "webDir": "www",
-  "ios": {
-    "contentInset": "never",
-    "backgroundColor": "#6C63FF"
-  }
-}

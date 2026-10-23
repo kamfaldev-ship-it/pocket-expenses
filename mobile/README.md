@@ -1,6 +1,6 @@
 # Pocket (mobile)
 
-Suivi de dépenses en React Native + Expo (iOS et Android). Interface en français, montants en FCFA. Les données restent sur le téléphone. La version web d'origine (`../index.html`) n'est pas modifiée.
+Suivi de dépenses en React Native + Expo (iOS et Android). Interface en français, montants en FCFA. Les données restent sur le téléphone. L'ancienne version web a été supprimée : le dépôt ne contient plus que l'app mobile.
 
 ## Démarrer
 
@@ -41,10 +41,13 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
+- **1.2.1** : suppression de la partie web (`index.html`, `www/`, `ios/` Capacitor, PWA, config Vercel). Aucun changement de fonction.
 
 ## Décisions
 
-- Dossier `mobile/` à côté de l'app web, plutôt que de la remplacer.
+- Dossier `mobile/` à côté de l'app web, plutôt que de la remplacer. Ensuite, à la demande de l'utilisateur, l'app web (et son wrapper Capacitor iOS) a été supprimée pour ne garder que le mobile. Elle reste récupérable dans l'historique git (commit `7044662`).
+- Suppression avec `git rm` (et non un simple `rm`) pour que l'historique et l'index restent cohérents. `mobile copie/` et son zip (sauvegardes de l'utilisateur, ignorées par git) sont conservés. Les déploiements Vercel déjà en ligne ne sont pas touchés.
+- Règle de projet : à chaque modification, tous les `.md` sont mis à jour (décisions, patterns, erreurs corrigées), même quand le changement est une suppression.
 - Expo SDK 57 (et non 58) : c'est la version supportée par l'Expo Go de l'App Store.
 - Solde « Disponible » séparé de la caisse. Un versement le diminue, un retrait le rend.
 - Pas de `Intl` : formatage fr-FR écrit à la main (espace fine, FCFA avec espace insécable, signe moins U+2212).
@@ -63,6 +66,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Formulaires réinitialisés par `key`** (`nonce`) plutôt que par effet.
 - **Fermeture gardée** des feuilles (`useGuardedClose`) : confirmation si saisie non vide, partagée avec le bouton retour Android.
 - **Réduction des animations** : `useReducedMotion` partout (courbe, donut, jauges, entrées).
+- **Suppression d'un sous-projet** : lister d'abord les fichiers suivis (`git ls-files`), chercher les références depuis le code conservé (`grep ../`, `index.html`, `capacitor`), supprimer avec `git rm`, puis mettre à jour les docs et relancer `tsc`, `eslint`, `jest`.
 - **Écran de verrouillage dans un `Modal`** : les feuilles sont des modales natives qui passeraient au-dessus d'un simple calque, donc on les ferme au verrouillage.
 
 ## Erreurs rencontrées et corrigées
@@ -78,6 +82,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - Jauge pleine sans objectif et montant tronqué : arc masqué sans objectif, montant et « FCFA » sur deux lignes.
 - Routes typées : `.expo/types/router.d.ts` se régénère au démarrage du serveur. Après l'ajout d'un écran, lance `npx expo start` une fois avant `tsc`.
 - macOS : `sed -i ''` et pas de commande `timeout`.
+- Après la suppression du web : rien de cassé, `mobile/` ne référençait aucun fichier parent. Seules les mentions dans `README.md` et `CLAUDE.md` étaient périmées (intro, règle sur `CapApp-SPM/README.md`), corrigées.
 - Avertissement web « Invalid DOM property `transform` » : défaut de react-native-svg sur le web, sans effet sur iOS et Android.
 
 ## Idées pour la suite
