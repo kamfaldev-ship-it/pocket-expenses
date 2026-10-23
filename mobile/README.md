@@ -41,12 +41,15 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
+- **1.3.3** : correction du clavier qui cachait le champ Note (Android surtout). Aucune fonction ajoutée.
 - **1.3.2** : micro-animations. Ressort au toucher sur boutons, cartes, lignes et barre d'onglets ; le solde et les totaux roulent vers leur nouvelle valeur ; la pastille du solde du jour fait un petit rebond quand elle change ; une transaction supprimée s'efface en fondu. Aucune fonction ajoutée.
 - **1.3.1** : passage à Expo SDK 58 (React Native 0.88, React 19.3) pour suivre l'Expo Go de l'App Store. Barre d'onglets adaptée à la nouvelle API. Aucun changement de fonction.
 - **1.3.0** : version simplifiée (80/20) pour le marché ivoirien. Catégories par défaut ivoiriennes, « solde du jour » sur l'accueil, 3 onglets (les réglages passent derrière l'engrenage), fonctions secondaires masquées derrière des drapeaux (`lib/features.ts`).
 - **1.2.1** : suppression de la partie web (`index.html`, `www/`, `ios/` Capacitor, PWA, config Vercel). Aucun changement de fonction.
 
 ## Décisions
+
+- **Clavier dans les feuilles (1.3.3)** : `KeyboardAvoidingView` en `padding` sur iOS et Android. Une `Modal` Android avec `statusBarTranslucent` n'est pas redimensionnée par le système, donc `behavior={undefined}` laissait le clavier recouvrir la feuille. Le champ Note, en bas du formulaire, défile aussi tout seul au focus.
 
 - **Motion (1.3.2)** : le mouvement répond à une action de l'utilisateur, il ne décore pas. Un seul moment « spectacle » au lancement : le solde compte depuis 0, une fois par session. Tout le reste est du retour d'action (toucher, saisie, suppression). Pas d'entrées en cascade sur chaque carte. Tout passe par `components/motion.tsx` pour garder les mêmes ressorts et durées. Avec « réduire les animations » activé : plus de mise à l'échelle, de rebond ni de décompte (la valeur change directement) ; seul un léger voile d'opacité reste au toucher, comme retour visuel.
 - **v1.3.0, règle 80/20** : l'app tourne autour d'une seule boucle, « je note une dépense, je vois ce qu'il me reste ». Ce qui n'y sert pas est masqué, pas supprimé : le code et les tests restent, la réactivation tient en un drapeau.
@@ -70,6 +73,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 
 ## Patterns utilisés
 
+- **Défilement au focus dans une feuille** : `SheetFrame` fournit `useScrollToEnd()` par contexte. Un champ bas du formulaire l'appelle dans `onFocus` (composant enfant du `SheetFrame`, sinon le contexte n'est pas atteint).
+
 - **Reducer pur + actions typées** : tout changement d'état passe par `reducer`, testé sans interface.
 - **Suppression avec « Annuler »** : l'action de restauration garde ce qu'il faut pour tout remettre (`restoreCat`, `restoreGoal` avec les ids déplacés).
 - **Normalisation tolérante ou stricte** : `normalizeState(d, strict)`. Lenient pour le stockage local (on écarte les éléments invalides), strict pour l'import (tout ou rien).
@@ -85,6 +90,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Écran de verrouillage dans un `Modal`** : les feuilles sont des modales natives qui passeraient au-dessus d'un simple calque, donc on les ferme au verrouillage.
 
 ## Erreurs rencontrées et corrigées
+
+- Le clavier cachait le champ Note dans la feuille d'ajout (Android) : `KeyboardAvoidingView` n'avait pas de `behavior` hors iOS. Corrigé en `padding` partout, plus défilement au focus. Au passage, `useRef<ScrollView>` ne type plus en RN 0.88 : utiliser `React.ComponentRef<typeof ScrollView>`.
 
 - Expo Go « incompatible » : descente au SDK 57 (`npx expo install --fix`).
 - ERESOLVE sur le sélecteur de date : `.npmrc` avec `legacy-peer-deps=true`.

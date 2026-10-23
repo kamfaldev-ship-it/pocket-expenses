@@ -1,4 +1,5 @@
-import { useEffect, type MutableRefObject, type ReactNode } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glyph } from './Icon';
@@ -32,12 +33,20 @@ export function useGuardedClose(dirty: boolean, close: () => void, ref: MutableR
   return request;
 }
 
+/** Lets a field near the bottom of a sheet scroll itself above the keyboard when focused. */
+const SheetScrollContext = createContext<() => void>(() => {});
+export const useScrollToEnd = () => useContext(SheetScrollContext);
+
 /** Bottom sheet chrome: scrim (tap to close), grabber, title and a 44pt close button. */
 export function SheetFrame({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  // Wait for the keyboard to finish resizing the sheet before scrolling.
+  const scrollToEnd = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+    // A Modal on Android is not resized by the system (statusBarTranslucent), so 'padding' is needed there too.
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <Pressable
         accessibilityLabel="Fermer"
         onPress={onClose}
@@ -54,7 +63,7 @@ export function SheetFrame({ title, onClose, children }: { title: string; onClos
           paddingBottom: 22 + insets.bottom,
         }}>
         <View style={{ width: 42, height: 5, borderRadius: 9, backgroundColor: t.line, alignSelf: 'center', marginBottom: 8 }} />
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <Text accessibilityRole="header" style={{ fontFamily: fonts.display700, fontSize: 21, color: t.ink, marginLeft: 2, flexShrink: 1 }}>
               {title}
@@ -69,7 +78,7 @@ export function SheetFrame({ title, onClose, children }: { title: string; onClos
               </View>
             </Pressable>
           </View>
-          {children}
+          <SheetScrollContext.Provider value={scrollToEnd}>{children}</SheetScrollContext.Provider>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>

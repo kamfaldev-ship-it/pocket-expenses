@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useRef, useState } from 'react';
 import { Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { CatPicker } from './CatPicker';
-import { AmountInput, field, parseAmount, SheetFrame, useGuardedClose } from './SheetFrame';
+import { AmountInput, field, parseAmount, SheetFrame, useGuardedClose, useScrollToEnd } from './SheetFrame';
 import { Button, Label, Segmented } from './ui';
 import { dayMonthShort, iso, mkey, parseDate, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
@@ -98,21 +98,31 @@ function SheetBody({ closeRef }: { closeRef: React.MutableRefObject<() => void> 
       )}
 
       <Label>Note ou description</Label>
-      <TextInput
-        value={note}
-        onChangeText={setNote}
-        multiline
-        maxLength={300}
-        placeholder="Ex. : paiement client, détail des courses, motif…"
-        placeholderTextColor={t.mute}
-        style={[field(t), { minHeight: 84, textAlignVertical: 'top', fontFamily: fonts.body400, color: t.ink }]}
-      />
+      <NoteInput value={note} onChange={setNote} />
 
       <Text accessibilityRole="alert" style={{ color: t.out, fontSize: 13, marginTop: 8, marginLeft: 4, minHeight: 16 }}>
         {err}
       </Text>
       <Button label="Enregistrer" onPress={save} style={{ marginTop: 12, paddingVertical: 16 }} />
     </SheetFrame>
+  );
+}
+
+/** Child of SheetFrame so it can reach its scroll context. */
+function NoteInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useTheme();
+  const scrollToEnd = useScrollToEnd();
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChange}
+      multiline
+      onFocus={scrollToEnd}
+      maxLength={300}
+      placeholder="Ex. : paiement client, détail des courses, motif…"
+      placeholderTextColor={t.mute}
+      style={[field(t), { minHeight: 84, textAlignVertical: 'top', fontFamily: fonts.body400, color: t.ink }]}
+    />
   );
 }
 
