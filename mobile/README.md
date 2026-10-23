@@ -8,7 +8,7 @@ Suivi de dépenses en React Native + Expo (iOS et Android). Interface en frança
 cd mobile
 npm install            # .npmrc active legacy-peer-deps
 npx expo start -c      # puis scanner le QR code avec Expo Go (SDK 57)
-npm test               # Jest (37 tests)
+npm test               # Jest (40 tests)
 npm run typecheck
 npx eslint src
 npx expo-doctor
@@ -22,8 +22,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 
 ## Architecture
 
-- `src/app/` : routes expo-router. Onglets dans `(tabs)/` (accueil, rapport, historique, réglages). Écrans poussés : `savings`, `recurring`, `budgets`.
-- `src/lib/` : logique pure et testée (dates, format, sélecteurs, `savings`, `recurring`, `budgets`, `backup`).
+- `src/app/` : routes expo-router. Onglets dans `(tabs)/` (accueil, rapport, historique). Écrans poussés : `settings` (engrenage en haut de l'accueil), `savings`, `budgets`, `recurring`.
+- `src/lib/` : logique pure et testée (dates, format, sélecteurs, `savings`, `recurring`, `budgets`, `backup`, `daily`, `features`).
 - `src/store/` : `index.tsx` (reducer + persistance AsyncStorage, clé `pocket.v1`), `ui.tsx` (mois, feuilles, toast), `lock.tsx` (verrouillage, clé `pocket.lock`), `actions.ts` (suppressions avec « Annuler »).
 - `src/components/`, `src/theme/` : composants et jetons clair/sombre (violet `#6C63FF`, Bricolage Grotesque + Figtree).
 
@@ -41,9 +41,17 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
+- **1.3.0** : version simplifiée (80/20) pour le marché ivoirien. Catégories par défaut ivoiriennes, « solde du jour » sur l'accueil, 3 onglets (les réglages passent derrière l'engrenage), fonctions secondaires masquées derrière des drapeaux (`lib/features.ts`).
 - **1.2.1** : suppression de la partie web (`index.html`, `www/`, `ios/` Capacitor, PWA, config Vercel). Aucun changement de fonction.
 
 ## Décisions
+
+- **v1.3.0, règle 80/20** : l'app tourne autour d'une seule boucle, « je note une dépense, je vois ce qu'il me reste ». Ce qui n'y sert pas est masqué, pas supprimé : le code et les tests restent, la réactivation tient en un drapeau.
+- **Masqué en v1** : récurrences, export CSV, verrouillage Face ID (iPhone seulement, alors que la cible est surtout sur Android), recherche dans l'historique, objectifs d'épargne multiples (un seul reste proposé). Un élément masqué réapparaît si l'utilisateur a déjà des données dedans (règles récurrentes, verrouillage activé, plusieurs objectifs), pour qu'il puisse les modifier ou les éteindre.
+- **Solde du jour = disponible ÷ jours restants**, et non « revenu du mois ÷ jours ». Raison : aucun écran de configuration au premier lancement, et la valeur bouge dès qu'on saisit une dépense. Contrepartie : le disponible inclut l'argent reporté des mois précédents.
+- **3 onglets** (accueil, rapport, historique). Réglages derrière l'engrenage de l'accueil, budgets accessibles depuis le rapport seulement (un seul chemin).
+- **Catégories ivoiriennes** : Salaire, Nourriture, Transport, Loyer, Eau et électricité, Crédit et data, Famille, Cotisations, Sorties, Frais, Autre. Les ids restent ceux de l'ancienne liste (`freelance` = Salaire, `courses` = Nourriture, `loisirs` = Sorties) pour ne pas casser les données et les tests. Seuls les nouveaux ids sont ajoutés (`factures`, `data`, `famille`, `social`, `frais`). Les installations existantes gardent leurs catégories.
+- **Pas dans la v1** (à décider après des retours d'utilisateurs) : comptes cash et Mobile Money, frais de retrait saisis à part, défi 30 jours, version Android sur le Play Store.
 
 - Dossier `mobile/` à côté de l'app web, plutôt que de la remplacer. Ensuite, à la demande de l'utilisateur, l'app web (et son wrapper Capacitor iOS) a été supprimée pour ne garder que le mobile. Elle reste récupérable dans l'historique git (commit `7044662`).
 - Suppression avec `git rm` (et non un simple `rm`) pour que l'historique et l'index restent cohérents. `mobile copie/` et son zip (sauvegardes de l'utilisateur, ignorées par git) sont conservés. Les déploiements Vercel déjà en ligne ne sont pas touchés.
@@ -62,6 +70,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Reducer pur + actions typées** : tout changement d'état passe par `reducer`, testé sans interface.
 - **Suppression avec « Annuler »** : l'action de restauration garde ce qu'il faut pour tout remettre (`restoreCat`, `restoreGoal` avec les ids déplacés).
 - **Normalisation tolérante ou stricte** : `normalizeState(d, strict)`. Lenient pour le stockage local (on écarte les éléments invalides), strict pour l'import (tout ou rien).
+- **Drapeaux de fonctionnalités** : `lib/features.ts` (`FEATURES`). L'interface teste `FEATURES.x || donnéesExistantes` avant d'afficher une fonction secondaire. Masquer sans supprimer garde le code testé et rend le retour en arrière immédiat.
 - **Récurrences idempotentes** : `lastApplied` par règle, application au lancement et au retour au premier plan, rattrapage des mois manqués sans doublon.
 - **Formulaires réinitialisés par `key`** (`nonce`) plutôt que par effet.
 - **Fermeture gardée** des feuilles (`useGuardedClose`) : confirmation si saisie non vide, partagée avec le bouton retour Android.
@@ -83,8 +92,12 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - Routes typées : `.expo/types/router.d.ts` se régénère au démarrage du serveur. Après l'ajout d'un écran, lance `npx expo start` une fois avant `tsc`.
 - macOS : `sed -i ''` et pas de commande `timeout`.
 - Après la suppression du web : rien de cassé, `mobile/` ne référençait aucun fichier parent. Seules les mentions dans `README.md` et `CLAUDE.md` étaient périmées (intro, règle sur `CapApp-SPM/README.md`), corrigées.
+- Test cassé après le renommage des catégories (`matchesQuery(…, 'COURSES')`) : le test cherchait l'ancien nom. Corrigé en `NOURRITURE`. Les ids n'ont pas bougé, donc seuls les tests qui lisent un nom sont touchés.
+- macOS : `sed -i` exige un argument de suffixe (`sed -i ''`). Sans lui, la commande échoue avec « unterminated substitute pattern ».
 - Avertissement web « Invalid DOM property `transform` » : défaut de react-native-svg sur le web, sans effet sur iOS et Android.
 
 ## Idées pour la suite
+
+À réactiver ou ajouter selon les retours : comptes cash / Mobile Money, frais de retrait, récurrences (loyer, cotisations), recherche, plusieurs objectifs, CSV, Face ID. Aussi :
 
 Modifier un objectif (nom, cible), budget global du mois, synchronisation iCloud.

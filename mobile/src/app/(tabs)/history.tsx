@@ -4,6 +4,7 @@ import { PickerField } from '@/components/PickerField';
 import { Screen } from '@/components/Screen';
 import { TransactionRow } from '@/components/TransactionRow';
 import { Button, Card, Empty, Title } from '@/components/ui';
+import { FEATURES } from '@/lib/features';
 import { dayLong, mkey, monthName } from '@/lib/dates';
 import { fcfaSigned } from '@/lib/format';
 import { field } from '@/components/SheetFrame';
@@ -38,17 +39,19 @@ export default function History() {
       <View style={{ marginHorizontal: 4, marginBottom: 16 }}>
         <Title>Historique</Title>
       </View>
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Rechercher une note, une catégorie, un montant"
-        placeholderTextColor={t.mute}
-        accessibilityLabel="Rechercher dans l’historique"
-        returnKeyType="search"
-        clearButtonMode="while-editing"
-        autoCorrect={false}
-        style={[field(t), { fontFamily: fonts.body400, color: t.ink, marginBottom: 10 }]}
-      />
+      {FEATURES.historySearch && (
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Rechercher une note, une catégorie, un montant"
+          placeholderTextColor={t.mute}
+          accessibilityLabel="Rechercher dans l’historique"
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          autoCorrect={false}
+          style={[field(t), { fontFamily: fonts.body400, color: t.ink, marginBottom: 10 }]}
+        />
+      )}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <PickerField
           label="Filtrer par mois"

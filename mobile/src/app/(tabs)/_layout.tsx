@@ -7,7 +7,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="report" />
       <Tabs.Screen name="history" />
-      <Tabs.Screen name="settings" />
     </Tabs>
   );
 }

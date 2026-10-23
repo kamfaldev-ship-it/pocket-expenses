@@ -118,12 +118,13 @@ export const demoTransactions = (cats: Category[], now = new Date()): Transactio
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const ds = iso(d);
-    if (i % 11 === 3) out.push({ id: id(), amount: rnd(150000, 450000), type: 'in', cat: 'freelance', date: ds, note: 'Mission client' });
-    if (i % 9 === 1) out.push({ id: id(), amount: rnd(5000, 25000), type: 'out', cat: 'courses', date: ds, note: '' });
-    if (i % 6 === 2) out.push({ id: id(), amount: rnd(500, 4000), type: 'out', cat: 'transport', date: ds, note: '' });
-    if (i % 13 === 5) out.push({ id: id(), amount: rnd(3000, 15000), type: 'out', cat: 'loisirs', date: ds, note: 'Sortie' });
-    if (i % 17 === 7) out.push({ id: id(), amount: rnd(2000, 9000), type: 'out', cat: 'outils', date: ds, note: 'Abonnement' });
-    if (d.getDate() === 1) out.push({ id: id(), amount: 120000, type: 'out', cat: 'loyer', date: ds, note: 'Loyer' });
+    if (d.getDate() === 28) out.push({ id: id(), amount: 250000, type: 'in', cat: 'freelance', date: ds, note: 'Salaire' });
+    if (i % 2 === 1) out.push({ id: id(), amount: rnd(1000, 4000), type: 'out', cat: 'courses', date: ds, note: 'Garba' });
+    if (i % 3 === 2) out.push({ id: id(), amount: rnd(500, 2000), type: 'out', cat: 'transport', date: ds, note: 'Gbaka' });
+    if (i % 13 === 5) out.push({ id: id(), amount: rnd(3000, 10000), type: 'out', cat: 'loisirs', date: ds, note: 'Maquis' });
+    if (i % 7 === 3) out.push({ id: id(), amount: rnd(1000, 3000), type: 'out', cat: 'data', date: ds, note: 'Recharge' });
+    if (i % 17 === 7) out.push({ id: id(), amount: rnd(5000, 15000), type: 'out', cat: 'social', date: ds, note: 'Cotisation' });
+    if (d.getDate() === 1) out.push({ id: id(), amount: 80000, type: 'out', cat: 'loyer', date: ds, note: 'Loyer' });
   }
   return out.filter((x) => cats.some((c) => c.id === x.cat));
 };

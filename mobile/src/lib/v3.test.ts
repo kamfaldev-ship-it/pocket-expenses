@@ -57,7 +57,7 @@ describe('search', () => {
   const t = tx(1, 'courses', 12500, 'Marché de Dakar');
   it('matches note, category and amount, ignoring case and accents', () => {
     expect(matchesQuery(t, cats, 'marche')).toBe(true);
-    expect(matchesQuery(t, cats, 'COURSES')).toBe(true);
+    expect(matchesQuery(t, cats, 'NOURRITURE')).toBe(true);
     expect(matchesQuery(t, cats, '12500')).toBe(true);
     expect(matchesQuery(t, cats, 'marché dakar')).toBe(true);
     expect(matchesQuery(t, cats, 'loyer')).toBe(false);

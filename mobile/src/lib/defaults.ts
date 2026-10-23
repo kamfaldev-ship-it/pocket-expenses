@@ -32,13 +32,18 @@ export const COLORS = ['#6C63FF', '#F97316', '#22C55E', '#3B82F6', '#EC4899', '#
 
 export const FALLBACK_CAT: Category = { id: 'autre', name: 'Autre', color: '#8B8AA3', icon: 'dots' };
 
+// Ids stay stable across renames: tests and saved data refer to them.
 export const DEFAULT_CATS: Category[] = [
-  { id: 'freelance', name: 'Freelance', color: '#22C55E', icon: 'briefcase' },
-  { id: 'courses', name: 'Courses', color: '#F97316', icon: 'cart' },
+  { id: 'freelance', name: 'Salaire', color: '#22C55E', icon: 'briefcase' },
+  { id: 'courses', name: 'Nourriture', color: '#F97316', icon: 'cart' },
   { id: 'transport', name: 'Transport', color: '#3B82F6', icon: 'car' },
   { id: 'loyer', name: 'Loyer', color: '#6C63FF', icon: 'home' },
-  { id: 'outils', name: 'Outils', color: '#14B8A6', icon: 'tool' },
-  { id: 'loisirs', name: 'Loisirs', color: '#EC4899', icon: 'game' },
+  { id: 'factures', name: 'Eau et électricité', color: '#14B8A6', icon: 'tool' },
+  { id: 'data', name: 'Crédit et data', color: '#EAB308', icon: 'phone' },
+  { id: 'famille', name: 'Famille', color: '#EC4899', icon: 'heart' },
+  { id: 'social', name: 'Cotisations', color: '#8B5CF6', icon: 'gift' },
+  { id: 'loisirs', name: 'Sorties', color: '#F43F5E', icon: 'coffee' },
+  { id: 'frais', name: 'Frais', color: '#64748B', icon: 'dots' },
   { id: 'autre', name: 'Autre', color: '#8B8AA3', icon: 'dots' },
 ];
 

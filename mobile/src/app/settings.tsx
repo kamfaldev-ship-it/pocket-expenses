@@ -4,8 +4,9 @@ import { Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { confirmAction } from '@/components/confirm';
 import { CatGlyph, Glyph } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
-import { Button, Card, CatBadge, H3, Label, Segmented, Title } from '@/components/ui';
+import { Button, Card, CatBadge, H3, Label, Segmented } from '@/components/ui';
 import { COLORS, ICONS } from '@/lib/defaults';
+import { FEATURES } from '@/lib/features';
 import { exportCsv, exportJson, pickBackup } from '@/lib/backupFiles';
 import { newId } from '@/lib/ids';
 import type { ThemePref } from '@/lib/types';
@@ -83,11 +84,7 @@ export default function Settings() {
     });
 
   return (
-    <Screen>
-      <View style={{ marginHorizontal: 4, marginBottom: 16 }}>
-        <Title>Réglages</Title>
-      </View>
-
+    <Screen pushed>
       <Card style={{ marginTop: 0 }}>
         <H3 style={{ marginBottom: 12 }}>Apparence</H3>
         <Segmented<ThemePref>
@@ -101,64 +98,48 @@ export default function Settings() {
         />
       </Card>
 
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <H3>Verrouillage</H3>
-            <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute, marginTop: 2 }}>
-              Face ID ou code du téléphone à chaque ouverture.
-            </Text>
+      {(FEATURES.appLock || lock.enabled) && (
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <H3>Verrouillage</H3>
+              <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute, marginTop: 2 }}>
+                Face ID ou code du téléphone à chaque ouverture.
+              </Text>
+            </View>
+            <Switch
+              accessibilityLabel="Verrouiller Pocket avec Face ID ou le code du téléphone"
+              value={lock.enabled}
+              trackColor={{ true: t.brand }}
+              onValueChange={(on) => {
+                lock.setEnabled(on).then((err) => showToast(err ?? (on ? 'Verrouillage activé' : 'Verrouillage désactivé')));
+              }}
+            />
           </View>
-          <Switch
-            accessibilityLabel="Verrouiller Pocket avec Face ID ou le code du téléphone"
-            value={lock.enabled}
-            trackColor={{ true: t.brand }}
-            onValueChange={(on) => {
-              lock.setEnabled(on).then((err) => showToast(err ?? (on ? 'Verrouillage activé' : 'Verrouillage désactivé')));
-            }}
-          />
-        </View>
-      </Card>
+        </Card>
+      )}
 
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/budgets')}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Glyph name="wallet" color={t.brand} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.body600, fontSize: 15, color: t.ink }}>Budgets</Text>
-            <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute }}>
-              {Object.keys(state.budgets).length
-                ? `${Object.keys(state.budgets).length} limite${Object.keys(state.budgets).length > 1 ? 's' : ''} mensuelle${Object.keys(state.budgets).length > 1 ? 's' : ''}`
-                : 'Une limite mensuelle par catégorie'}
-            </Text>
-          </View>
-          <Glyph name="right" color={t.mute} />
-        </Pressable>
-      </Card>
-
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/recurring')}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Glyph name="repeat" color={t.brand} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.body600, fontSize: 15, color: t.ink }}>Récurrences</Text>
-            <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute }}>
-              {state.recurring.length
-                ? `${state.recurring.length} règle${state.recurring.length > 1 ? 's' : ''} active${state.recurring.length > 1 ? 's' : ''}`
-                : 'Loyer, abonnements, versement mensuel en caisse'}
-            </Text>
-          </View>
-          <Glyph name="right" color={t.mute} />
-        </Pressable>
-      </Card>
+      {(FEATURES.recurring || state.recurring.length > 0) && (
+        <Card>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/recurring')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: t.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <Glyph name="repeat" color={t.brand} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.body600, fontSize: 15, color: t.ink }}>Récurrences</Text>
+              <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute }}>
+                {state.recurring.length
+                  ? `${state.recurring.length} règle${state.recurring.length > 1 ? 's' : ''} active${state.recurring.length > 1 ? 's' : ''}`
+                  : 'Loyer, abonnements, versement mensuel en caisse'}
+              </Text>
+            </View>
+            <Glyph name="right" color={t.mute} />
+          </Pressable>
+        </Card>
+      )}
 
       <Card>
         <H3 style={{ marginBottom: 6 }}>Catégories</H3>
@@ -268,7 +249,9 @@ export default function Settings() {
         </Text>
         <View style={{ gap: 10 }}>
           <Button label="Exporter une sauvegarde" variant="ghost" onPress={() => run(() => exportJson(state))} />
-          <Button label="Exporter les transactions (CSV)" variant="ghost" onPress={() => run(() => exportCsv(state))} />
+          {FEATURES.csvExport && (
+            <Button label="Exporter les transactions (CSV)" variant="ghost" onPress={() => run(() => exportCsv(state))} />
+          )}
           <Button label="Importer une sauvegarde" variant="ghost" onPress={importBackup} />
           <Button variant="danger" label={sure ? 'Confirmer : tout effacer ?' : 'Tout effacer'} onPress={wipe} />
         </View>

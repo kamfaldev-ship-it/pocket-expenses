@@ -61,6 +61,7 @@ function Shell() {
         <Stack.Screen name="savings" options={pushed(t, 'Caisse économies')} />
         <Stack.Screen name="recurring" options={pushed(t, 'Récurrences')} />
         <Stack.Screen name="budgets" options={pushed(t, 'Budgets')} />
+        <Stack.Screen name="settings" options={pushed(t, 'Réglages')} />
       </Stack>
       <Toast />
       <AddSheet />

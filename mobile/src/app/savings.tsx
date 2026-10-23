@@ -8,6 +8,7 @@ import { SavingsRing } from '@/components/SavingsRing';
 import { parseAmount, field } from '@/components/SheetFrame';
 import { Button, Card, Empty, H3, Label } from '@/components/ui';
 import { dayMonthShort, mkey, today } from '@/lib/dates';
+import { FEATURES } from '@/lib/features';
 import { fcfa } from '@/lib/format';
 import { newId } from '@/lib/ids';
 import { bucketBalance, goalProgress, goalsProgress, monthlySaved, savedInMonth, savingsBalance } from '@/lib/savings';
@@ -33,6 +34,7 @@ export default function Savings() {
   const [goalName, setGoalName] = useState('');
   const [goalTarget, setGoalTarget] = useState('');
   const [goalErr, setGoalErr] = useState('');
+  const canAddGoal = FEATURES.multiGoals || state.goals.length === 0;
   const goalLabel = (id: number | null) => state.goals.find((g) => g.id === id)?.name;
 
   const addGoal = () => {
@@ -118,35 +120,39 @@ export default function Savings() {
             </View>
           );
         })}
-        <Label>Nouvel objectif</Label>
-        <TextInput
-          value={goalName}
-          onChangeText={(v) => {
-            setGoalName(v);
-            setGoalErr('');
-          }}
-          maxLength={24}
-          placeholder="Nom (ex. Voyage)"
-          placeholderTextColor={t.mute}
-          accessibilityLabel="Nom de l’objectif"
-          style={[field(t), { fontFamily: fonts.body500, color: t.ink }]}
-        />
-        <TextInput
-          value={goalTarget}
-          onChangeText={(v) => {
-            setGoalTarget(v.replace(/[^\d\s]/g, ''));
-            setGoalErr('');
-          }}
-          keyboardType="number-pad"
-          placeholder="Montant à atteindre (ex. 200 000)"
-          placeholderTextColor={t.mute}
-          accessibilityLabel="Montant de l’objectif en FCFA"
-          style={[field(t), { fontFamily: fonts.body500, color: t.ink, marginTop: 10 }]}
-        />
-        <Text accessibilityRole="alert" style={{ color: t.out, fontSize: 13, marginTop: 8, marginLeft: 4, minHeight: 16 }}>
-          {goalErr}
-        </Text>
-        <Button label="Créer l’objectif" variant="ghost" onPress={addGoal} style={{ marginTop: 6 }} />
+        {canAddGoal && (
+          <>
+            <Label>Nouvel objectif</Label>
+            <TextInput
+              value={goalName}
+              onChangeText={(v) => {
+                setGoalName(v);
+                setGoalErr('');
+              }}
+              maxLength={24}
+              placeholder="Nom (ex. Voyage)"
+              placeholderTextColor={t.mute}
+              accessibilityLabel="Nom de l’objectif"
+              style={[field(t), { fontFamily: fonts.body500, color: t.ink }]}
+            />
+            <TextInput
+              value={goalTarget}
+              onChangeText={(v) => {
+                setGoalTarget(v.replace(/[^\d\s]/g, ''));
+                setGoalErr('');
+              }}
+              keyboardType="number-pad"
+              placeholder="Montant à atteindre (ex. 200 000)"
+              placeholderTextColor={t.mute}
+              accessibilityLabel="Montant de l’objectif en FCFA"
+              style={[field(t), { fontFamily: fonts.body500, color: t.ink, marginTop: 10 }]}
+            />
+            <Text accessibilityRole="alert" style={{ color: t.out, fontSize: 13, marginTop: 8, marginLeft: 4, minHeight: 16 }}>
+              {goalErr}
+            </Text>
+            <Button label="Créer l’objectif" variant="ghost" onPress={addGoal} style={{ marginTop: 6 }} />
+          </>
+        )}
       </Card>
 
       <Text accessibilityRole="header" style={{ fontFamily: fonts.display700, fontSize: 19, color: t.ink, marginTop: 22, marginBottom: 12, marginLeft: 4 }}>

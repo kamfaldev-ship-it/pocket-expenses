@@ -8,11 +8,10 @@ import { Glyph, ReportGlyph } from './Icon';
 import { useUI } from '@/store/ui';
 import { fonts, useTheme } from '@/theme';
 
-const TABS: Record<string, { label: string; icon: 'home' | 'report' | 'history' | 'settings' }> = {
+const TABS: Record<string, { label: string; icon: 'home' | 'report' | 'history' }> = {
   index: { label: 'Accueil', icon: 'home' },
   report: { label: 'Rapport', icon: 'report' },
   history: { label: 'Historique', icon: 'history' },
-  settings: { label: 'Réglages', icon: 'settings' },
 };
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
@@ -89,7 +88,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         </Pressable>
       </View>
       {renderTab('history')}
-      {renderTab('settings')}
     </BlurView>
   );
 }

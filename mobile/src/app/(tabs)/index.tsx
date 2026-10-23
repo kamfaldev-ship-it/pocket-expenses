@@ -10,6 +10,8 @@ import { Screen } from '@/components/Screen';
 import { TransactionRow } from '@/components/TransactionRow';
 import { Button, Card, Empty, H3, shadow } from '@/components/ui';
 import { budgetRows } from '@/lib/budgets';
+import { dailyAllowance } from '@/lib/daily';
+import { mkey, today } from '@/lib/dates';
 import { fcfa, fcfaSigned, nf } from '@/lib/format';
 import { balanceSeries, cmp, demoTransactions, monthStats } from '@/lib/selectors';
 import { availableBalance, availableLedger, goalsProgress, savingsBalance } from '@/lib/savings';
@@ -64,6 +66,7 @@ export default function Home() {
   const series = useMemo(() => balanceSeries(availableLedger({ tx, savings })), [tx, savings]);
   const alerts = budgetRows(state, month).filter((b) => b.status !== 'ok');
   const over = alerts.filter((b) => b.status === 'over');
+  const daily = month === mkey(today()) ? dailyAllowance(total) : null;
   const recent = [...state.tx].sort(cmp).slice(0, 4);
 
   const hero = (
@@ -88,7 +91,24 @@ export default function Home() {
           </View>
           <Text style={{ fontFamily: fonts.display800, fontSize: 20, letterSpacing: -0.4, color: '#fff' }}>Pocket</Text>
         </View>
-        <MonthSwitcher month={month} onChange={setMonth} onHero />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <MonthSwitcher month={month} onChange={setMonth} onHero />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Réglages"
+            hitSlop={6}
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: pressed ? 'rgba(255,255,255,0.2)' : 'transparent',
+            })}>
+            <Glyph name="settings" color="#fff" />
+          </Pressable>
+        </View>
       </View>
       <Animated.View entering={reduce ? undefined : FadeInDown.duration(800)} style={{ alignItems: 'center', marginTop: 30 }}>
         <Text style={{ fontFamily: fonts.body500, fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>Disponible</Text>
@@ -101,7 +121,15 @@ export default function Home() {
           <Text style={{ fontSize: 22, letterSpacing: 0, opacity: 0.55 }}>{' FCFA'}</Text>
         </Text>
         <View style={{ marginTop: 10, backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 }}>
-          <Text style={{ fontFamily: fonts.body600, fontSize: 13, color: '#fff' }}>{fcfaSigned(stats.net)} sur le mois</Text>
+          <Text style={{ fontFamily: fonts.body600, fontSize: 13, color: '#fff' }}>
+            {!daily
+              ? `${fcfaSigned(stats.net)} sur le mois`
+              : daily.empty
+                ? 'Plus rien à dépenser ce mois-ci'
+                : daily.daysLeft === 1
+                  ? `${fcfa(daily.perDay)} à dépenser aujourd\u2019hui`
+                  : `≈ ${fcfa(daily.perDay)} par jour jusqu\u2019à la fin du mois`}
+          </Text>
         </View>
       </Animated.View>
     </LinearGradient>
