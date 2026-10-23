@@ -22,6 +22,7 @@ export const GLYPHS = {
   upload: 'M12 16V4M7 9l5-5 5 5M5 20h14',
   download: 'M12 4v12M7 11l5 5 5-5M5 20h14',
   check: 'M5 12.5l4.5 4.5L19 7.5',
+  camera: 'M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
 } as const;
 
 interface Props {

@@ -4,8 +4,9 @@ import { AppState as RNAppState } from 'react-native';
 import { DEFAULT_CATS, initialState, STORAGE_KEY } from '@/lib/defaults';
 import { normalizeState } from '@/lib/backup';
 import { today } from '@/lib/dates';
+import { cleanupOrphans } from '@/lib/photos';
 import { applyRecurring } from '@/lib/recurring';
-import type { AppState, Category, RecurringRule, SavingsEntry, SavingsGoal, ThemePref, Transaction } from '@/lib/types';
+import type { AppState, Category, RecurringRule, SavingsEntry, SavingsGoal, ThemePref, Transaction, TxType } from '@/lib/types';
 
 export type Action =
   | { type: 'hydrate'; state: AppState }
@@ -15,7 +16,7 @@ export type Action =
   | { type: 'addTxs'; txs: Transaction[] }
   | { type: 'addCat'; cat: Category }
   | { type: 'deleteCat'; id: string }
-  | { type: 'restoreCat'; cat: Category; index: number; moved: number[] }
+  | { type: 'restoreCat'; cat: Category; index: number; moved: number[]; budget?: number }
   | { type: 'setTheme'; theme: ThemePref }
   | { type: 'saveSaving'; entry: SavingsEntry }
   | { type: 'deleteSaving'; id: number }
@@ -28,7 +29,11 @@ export type Action =
   | { type: 'applyRecurring'; today: string }
   | { type: 'wipe' };
 
-const fallbackId = (cats: Category[]) => (cats.find((c) => c.id === 'autre') ?? cats[cats.length - 1]).id;
+/** Where the transactions of a deleted category go: the "other" category of the same kind. */
+const fallbackId = (cats: Category[], kind: TxType) => {
+  const same = cats.filter((c) => c.kind === kind);
+  return (same.find((c) => c.id === (kind === 'in' ? 'autre_in' : 'autre')) ?? same[same.length - 1])?.id;
+};
 
 export function reducer(s: AppState, a: Action): AppState {
   switch (a.type) {
@@ -46,12 +51,17 @@ export function reducer(s: AppState, a: Action): AppState {
     case 'addCat':
       return { ...s, cats: [...s.cats, a.cat] };
     case 'deleteCat': {
-      if (s.cats.length <= 1) return s;
+      const gone = s.cats.find((c) => c.id === a.id);
+      if (!gone) return s;
       const cats = s.cats.filter((c) => c.id !== a.id);
-      const fb = fallbackId(cats);
+      const fb = fallbackId(cats, gone.kind);
+      if (!fb) return s; // the last category of a kind cannot be deleted
+      const budgets = { ...s.budgets };
+      delete budgets[a.id];
       return {
         ...s,
         cats,
+        budgets,
         tx: s.tx.map((t) => (t.cat === a.id ? { ...t, cat: fb } : t)),
         recurring: s.recurring.map((r) => (r.cat === a.id ? { ...r, cat: fb } : r)),
       };
@@ -59,7 +69,8 @@ export function reducer(s: AppState, a: Action): AppState {
     case 'restoreCat': {
       const cats = [...s.cats];
       cats.splice(a.index, 0, a.cat);
-      return { ...s, cats, tx: s.tx.map((t) => (a.moved.includes(t.id) ? { ...t, cat: a.cat.id } : t)) };
+      const budgets = a.budget ? { ...s.budgets, [a.cat.id]: a.budget } : s.budgets;
+      return { ...s, cats, budgets, tx: s.tx.map((t) => (a.moved.includes(t.id) ? { ...t, cat: a.cat.id } : t)) };
     }
     case 'setTheme':
       return { ...s, theme: a.theme };
@@ -114,6 +125,14 @@ export function parseStored(raw: string | null): AppState {
   }
 }
 
+const isSavedState = (raw: string) => {
+  try {
+    return normalizeState(JSON.parse(raw), false) !== null;
+  } catch {
+    return false;
+  }
+};
+
 interface StoreValue {
   state: AppState;
   dispatch: (a: Action) => void;
@@ -130,7 +149,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        dispatch({ type: 'hydrate', state: parseStored(raw) });
+        const loaded = parseStored(raw);
+        dispatch({ type: 'hydrate', state: loaded });
+        // Housekeeping only from real saved data: a fallback state must never delete receipts.
+        if (raw && isSavedState(raw)) cleanupOrphans(loaded.tx);
         dispatch({ type: 'applyRecurring', today: today() });
       })
       .catch(() => {})

@@ -9,7 +9,7 @@ import { COLORS, ICONS } from '@/lib/defaults';
 import { FEATURES } from '@/lib/features';
 import { exportCsv, exportJson, pickBackup } from '@/lib/backupFiles';
 import { newId } from '@/lib/ids';
-import type { ThemePref } from '@/lib/types';
+import type { ThemePref, TxType } from '@/lib/types';
 import { useStore } from '@/store';
 import { useLock } from '@/store/lock';
 import { useUI } from '@/store/ui';
@@ -21,6 +21,7 @@ export default function Settings() {
   const { showToast } = useUI();
   const lock = useLock();
   const [name, setName] = useState('');
+  const [kind, setKind] = useState<TxType>('out');
   const [color, setColor] = useState(COLORS[0]);
   const [icon, setIcon] = useState('heart');
   const [err, setErr] = useState('');
@@ -32,19 +33,22 @@ export default function Settings() {
     const n = name.trim();
     if (!n) return setErr('Donne un nom à ta catégorie.');
     if (state.cats.some((c) => c.name.toLowerCase() === n.toLowerCase())) return setErr('Cette catégorie existe déjà.');
-    dispatch({ type: 'addCat', cat: { id: 'c' + newId(), name: n, color, icon } });
+    dispatch({ type: 'addCat', cat: { id: 'c' + newId(), kind, name: n, color, icon } });
     setName('');
     setErr('');
     showToast('Catégorie ajoutée');
   };
 
   const delCat = (id: string) => {
-    if (state.cats.length <= 1) return showToast('Garde au moins une catégorie');
     const index = state.cats.findIndex((c) => c.id === id);
     const cat = state.cats[index];
+    if (state.cats.filter((c) => c.kind === cat.kind).length <= 1) {
+      return showToast(`Garde au moins une catégorie ${cat.kind === 'in' ? 'd’entrée' : 'de dépense'}`);
+    }
+    const budget = state.budgets[id];
     const moved = state.tx.filter((x) => x.cat === id).map((x) => x.id);
     dispatch({ type: 'deleteCat', id });
-    showToast('Catégorie supprimée', () => dispatch({ type: 'restoreCat', cat, index, moved }));
+    showToast('Catégorie supprimée', () => dispatch({ type: 'restoreCat', cat, index, moved, budget }));
   };
 
   const wipe = () => {
@@ -143,28 +147,46 @@ export default function Settings() {
 
       <Card>
         <H3 style={{ marginBottom: 6 }}>Catégories</H3>
-        {state.cats.map((c, i) => (
-          <View
-            key={c.id}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              paddingVertical: 12,
-              borderTopWidth: i ? 1 : 0,
-              borderColor: t.line,
-            }}>
-            <CatBadge cat={c} />
-            <Text style={{ flex: 1, fontFamily: fonts.body600, fontSize: 15, color: t.ink }}>{c.name}</Text>
-            <Pressable accessibilityLabel={`Supprimer ${c.name}`} hitSlop={8} onPress={() => delCat(c.id)} style={{ padding: 8 }}>
-              <Glyph name="close" color={t.mute} />
-            </Pressable>
+        {(['out', 'in'] as const).map((k) => (
+          <View key={k}>
+            <Text style={{ fontFamily: fonts.body600, fontSize: 13, color: t.mute, marginTop: 10 }}>
+              {k === 'out' ? 'Dépenses' : 'Entrées'}
+            </Text>
+            {state.cats
+              .filter((c) => c.kind === k)
+              .map((c, i) => (
+                <View
+                  key={c.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingVertical: 12,
+                    borderTopWidth: i ? 1 : 0,
+                    borderColor: t.line,
+                  }}>
+                  <CatBadge cat={c} />
+                  <Text style={{ flex: 1, fontFamily: fonts.body600, fontSize: 15, color: t.ink }}>{c.name}</Text>
+                  <Pressable accessibilityLabel={`Supprimer ${c.name}`} hitSlop={8} onPress={() => delCat(c.id)} style={{ padding: 8 }}>
+                    <Glyph name="close" color={t.mute} />
+                  </Pressable>
+                </View>
+              ))}
           </View>
         ))}
       </Card>
 
       <Card>
         <H3 style={{ marginBottom: 12 }}>Nouvelle catégorie</H3>
+        <Segmented
+          value={kind}
+          onChange={setKind}
+          options={[
+            { value: 'out', label: 'Dépense' },
+            { value: 'in', label: 'Entrée' },
+          ]}
+        />
+        <View style={{ height: 12 }} />
         <TextInput
           value={name}
           onChangeText={(v) => {
@@ -245,7 +267,7 @@ export default function Settings() {
       <Card>
         <H3 style={{ marginBottom: 6 }}>Données</H3>
         <Text style={{ fontFamily: fonts.body400, color: t.mute, marginBottom: 14 }}>
-          {"Tout reste sur ton téléphone. Exporte une sauvegarde pour changer de téléphone ou garder une copie."}
+          {"Tout reste sur ton téléphone, y compris les photos. Exporte une sauvegarde pour changer de téléphone ou garder une copie (les photos n’y sont pas incluses)."}
         </Text>
         <View style={{ gap: 10 }}>
           <Button label="Exporter une sauvegarde" variant="ghost" onPress={() => run(() => exportJson(state))} />

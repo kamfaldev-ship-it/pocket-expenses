@@ -8,7 +8,7 @@ Suivi de dépenses en React Native + Expo (iOS et Android). Interface en frança
 cd mobile
 npm install            # .npmrc active legacy-peer-deps
 npx expo start -c      # puis scanner le QR code avec Expo Go (SDK 58)
-npm test               # Jest (40 tests)
+npm test               # Jest (53 tests)
 npm run typecheck
 npx eslint src
 npx expo-doctor
@@ -23,13 +23,17 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 ## Architecture
 
 - `src/app/` : routes expo-router. Onglets dans `(tabs)/` (accueil, rapport, historique). Écrans poussés : `settings` (engrenage en haut de l'accueil), `savings`, `budgets`, `recurring`.
-- `src/lib/` : logique pure et testée (dates, format, sélecteurs, `savings`, `recurring`, `budgets`, `backup`, `daily`, `features`).
+- `src/lib/` : logique pure et testée (dates et périodes, format, sélecteurs, `savings`, `recurring`, `budgets`, `backup`, `daily`, `features`, `photos`).
 - `src/store/` : `index.tsx` (reducer + persistance AsyncStorage, clé `pocket.v1`), `ui.tsx` (mois, feuilles, toast), `lock.tsx` (verrouillage, clé `pocket.lock`), `actions.ts` (suppressions avec « Annuler »).
 - `src/components/`, `src/theme/` : composants et jetons clair/sombre (violet `#6C63FF`, Bricolage Grotesque + Figtree).
 
 ## Modèle de données (version 3)
 
 `AppState { cats, tx, theme, savings, goals, budgets, recurring }`
+
+- `Category.kind` (`'in' | 'out'`, depuis 1.4) : une catégorie ne sert qu'à un type d'opération. Les données d'avant 1.4 n'ont pas ce champ : `normalizeState` le déduit (seul `freelance`/Salaire est une entrée) et ajoute une fois les nouvelles catégories d'entrée.
+- `Transaction.photo?` (depuis 1.4) : nom du fichier de la photo, jamais un chemin. Le fichier vit dans `Paths.document/receipts/`. Le champ n'est ni exporté ni importé (la sauvegarde reste en version 3).
+- Période affichée : état d'interface (`store/ui.tsx`), pas de données. `range` (début et fin inclus) ou, à défaut, le mois choisi.
 
 - Caisse = Σ versements − Σ retraits. Disponible = Σ transactions − caisse. Patrimoine = disponible + caisse. Les virements ne comptent ni dans les dépenses ni dans les entrées.
 - `SavingsEntry.goalId` : `null` = argent de la caisse sans objectif. Chaque réserve (objectif ou « sans objectif ») ne peut pas devenir négative.
@@ -41,6 +45,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
+- **1.4.0** : retours d'usage. Titre « Ajouter une opération » ; catégories séparées entre dépenses et entrées ; budgets plus rapides (placeholder « 0 », clavier avec « OK », retour automatique, feuille d'édition rapide depuis le rapport) ; carte « Budget du mois » sur l'accueil ; période libre (du … au …, ou un seul jour) sur l'accueil, le rapport et l'historique ; photos de reçus, locales et sans compte.
 - **1.3.3** : correction du clavier qui cachait le champ Note (Android surtout). Aucune fonction ajoutée.
 - **1.3.2** : micro-animations. Ressort au toucher sur boutons, cartes, lignes et barre d'onglets ; le solde et les totaux roulent vers leur nouvelle valeur ; la pastille du solde du jour fait un petit rebond quand elle change ; une transaction supprimée s'efface en fondu. Aucune fonction ajoutée.
 - **1.3.1** : passage à Expo SDK 58 (React Native 0.88, React 19.3) pour suivre l'Expo Go de l'App Store. Barre d'onglets adaptée à la nouvelle API. Aucun changement de fonction.
@@ -48,6 +53,14 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.2.1** : suppression de la partie web (`index.html`, `www/`, `ios/` Capacitor, PWA, config Vercel). Aucun changement de fonction.
 
 ## Décisions
+
+- **Titre du « + » (1.4.0)** : « Ajouter une opération », neutre car la feuille sert aux dépenses comme aux entrées. Demandé par l'utilisateur : « Nouvelle transaction » faisait trop bancaire.
+- **Catégories par type (1.4.0)** : l'utilisateur a relevé que Loyer, Outils ou Sorties apparaissaient dans les Entrées. Chaque catégorie a un `kind`. Entrées par défaut : Salaire, Ventes et activité, Aide reçue, Prime, Autre entrée. Les ids existants ne bougent pas. Supprimer une catégorie renvoie ses opérations vers « Autre » du même type, et on ne peut pas supprimer la dernière catégorie d'un type. À la modification d'une ancienne opération dont la catégorie n'est plus du bon type, cette catégorie reste proposée pour ne rien changer en silence.
+- **Budget du mois (1.4.0)** : on garde des limites par catégorie (pas de budget global, choix de l'utilisateur) mais on les met en avant : carte toujours visible sur l'accueil (total dépensé / total des limites, barre, catégories à surveiller) ou invitation « Fixer ». La carte n'apparaît que pour un mois entier, car les limites sont mensuelles ; sur une période libre, le rapport l'explique.
+- **Parcours budget (1.4.0)** : « Aucun » remplacé par « 0 » et « FCFA ». Le pavé numérique iOS n'a pas de touche de retour, donc une barre « OK » (`InputAccessoryView`). Enregistrer revient directement à l'écran précédent avec un toast. Un budget se règle aussi seul depuis le rapport, dans une feuille.
+- **Période libre (1.4.0)** : flèches de mois conservées ; toucher le libellé ouvre une feuille (raccourcis, ou dates de début et de fin ; un jour = début égal à fin). Appliquée à l'accueil, au rapport et à l'historique. Le solde du jour reste lié au mois en cours. Ajouter une opération hors de la période affichée bascule sur son mois.
+- **Photos (1.4.0)** : tout reste sur le téléphone, aucun compte. Fichiers dans le dossier documents de l'app, la transaction ne garde que le nom (pas de base64 dans AsyncStorage, pas de chemin absolu qui casse après une mise à jour). Les photos ne sont pas dans la sauvegarde JSON (indiqué dans les réglages) : un export restauré sur un autre téléphone ne les ramène pas. Choix de l'utilisateur : photos locales hors sauvegarde plutôt qu'un ZIP.
+- **Nettoyage des photos (1.4.0)** : au lancement, on supprime les fichiers qu'aucune opération n'utilise (suppression, import, effacement, formulaire abandonné). Faire le ménage tard permet à « Annuler » de rendre la photo. Jamais si les données enregistrées sont illisibles.
 
 - **Clavier dans les feuilles (1.3.3)** : `KeyboardAvoidingView` en `padding` sur iOS et Android. Une `Modal` Android avec `statusBarTranslucent` n'est pas redimensionnée par le système, donc `behavior={undefined}` laissait le clavier recouvrir la feuille. Le champ Note, en bas du formulaire, défile aussi tout seul au focus.
 
@@ -73,6 +86,12 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 
 ## Patterns utilisés
 
+- **Période dérivée** : `useUI().period` (`from`, `to`, `isMonth`, `label`) vient de `range ?? monthRange(month)`. Les sélecteurs (`monthStats`, `reportRows`, `budgetRows`) acceptent un mois (`'2026-10'`) ou une période (`PeriodInput`), donc les anciens appels et tests ne changent pas.
+- **Migration par champ absent** : `kind` manquant = données d'avant 1.4 (ajout unique des nouvelles catégories). Une fois sauvegardées, une catégorie supprimée reste supprimée.
+- **Photos par nom de fichier + nettoyage des orphelins** : `lib/photos.ts` (`savePhoto`, `photoUri`, `cleanupOrphans`, `orphanNames` pur et testé).
+- **« OK » au-dessus du pavé numérique** : `KeyboardDoneBar` (une fois par écran ou feuille) et `inputAccessoryViewID={KEYBOARD_DONE_ID}` sur les champs.
+- **Feuille d'édition rapide** : `BudgetSheet`, `PeriodSheet` montées à la racine, ouvertes par `useUI()` (même schéma que `AddSheet`).
+
 - **Défilement au focus dans une feuille** : `SheetFrame` fournit `useScrollToEnd()` par contexte. Un champ bas du formulaire l'appelle dans `onFocus` (composant enfant du `SheetFrame`, sinon le contexte n'est pas atteint).
 
 - **Reducer pur + actions typées** : tout changement d'état passe par `reducer`, testé sans interface.
@@ -90,6 +109,9 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Écran de verrouillage dans un `Modal`** : les feuilles sont des modales natives qui passeraient au-dessus d'un simple calque, donc on les ferme au verrouillage.
 
 ## Erreurs rencontrées et corrigées
+
+- Hook appelé au-dessus du fournisseur de contexte : `useScrollToEnd()` dans `SheetBody` ne recevait rien, car le contexte est fourni par `SheetFrame`. Corrigé en sortant le champ dans un composant enfant (`NoteInput`).
+- Test de budget écrit de travers (assertion qui ne vérifiait rien) : remplacé par une comparaison directe de l'ordre « le plus consommé d'abord ».
 
 - Le clavier cachait le champ Note dans la feuille d'ajout (Android) : `KeyboardAvoidingView` n'avait pas de `behavior` hors iOS. Corrigé en `padding` partout, plus défilement au focus. Au passage, `useRef<ScrollView>` ne type plus en RN 0.88 : utiliser `React.ComponentRef<typeof ScrollView>`.
 

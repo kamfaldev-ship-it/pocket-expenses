@@ -26,6 +26,7 @@ export function Screen({
       <ScrollView
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: (pushed ? 32 : 90) + insets.bottom }}>
         {header}

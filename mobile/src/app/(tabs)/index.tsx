@@ -9,10 +9,10 @@ import { LineChart } from '@/components/LineChart';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { Screen } from '@/components/Screen';
 import { TransactionRow } from '@/components/TransactionRow';
-import { Button, Card, Empty, H3, shadow } from '@/components/ui';
-import { budgetRows } from '@/lib/budgets';
+import { Button, Card, Empty, H3, Meter, shadow } from '@/components/ui';
+import { budgetRows, budgetSummary } from '@/lib/budgets';
 import { dailyAllowance } from '@/lib/daily';
-import { mkey, today } from '@/lib/dates';
+import { mkey, monthName, today } from '@/lib/dates';
 import { fcfa, fcfaSigned, nf } from '@/lib/format';
 import { balanceSeries, cmp, demoTransactions, monthStats } from '@/lib/selectors';
 import { availableBalance, availableLedger, goalsProgress, savingsBalance } from '@/lib/savings';
@@ -60,18 +60,21 @@ export default function Home() {
   const reduce = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useStore();
-  const { month, setMonth, openSheet } = useUI();
+  const { month, setMonth, range, period, openSheet } = useUI();
   const deleteTx = useDeleteTx();
 
   const { tx, savings } = state;
   const total = availableBalance(state);
   const pot = savingsBalance(state.savings);
   const potProgress = goalsProgress(state)?.progress ?? null;
-  const stats = monthStats(state.tx, month);
+  const stats = monthStats(state.tx, period);
   const series = useMemo(() => balanceSeries(availableLedger({ tx, savings })), [tx, savings]);
-  const alerts = budgetRows(state, month).filter((b) => b.status !== 'ok');
-  const over = alerts.filter((b) => b.status === 'over');
-  const daily = month === mkey(today()) ? dailyAllowance(total) : null;
+  const budget = period.isMonth ? budgetSummary(budgetRows(state, period)) : null;
+  const flagged = budget?.rows.filter((b) => b.status !== 'ok') ?? [];
+  const over = flagged.filter((b) => b.status === 'over');
+  const isCurrent = !range && month === mkey(today());
+  const daily = isCurrent ? dailyAllowance(total) : null;
+  const sectionTitle = range ? period.label : isCurrent ? 'Ce mois-ci' : monthName(month);
   const recent = [...state.tx].sort(cmp).slice(0, 4);
 
   const hero = (
@@ -131,7 +134,7 @@ export default function Home() {
           style={{ marginTop: 10, backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999 }}>
           <Text style={{ fontFamily: fonts.body600, fontSize: 13, color: '#fff' }}>
             {!daily
-              ? `${fcfaSigned(stats.net)} sur le mois`
+              ? `${fcfaSigned(stats.net)} ${range ? 'sur la période' : 'sur le mois'}`
               : daily.empty
                 ? 'Plus rien à dépenser ce mois-ci'
                 : daily.daysLeft === 1
@@ -145,7 +148,9 @@ export default function Home() {
 
   return (
     <Screen header={hero}>
-      <Text style={{ fontFamily: fonts.display700, fontSize: 19, color: t.ink, marginLeft: 4, marginBottom: 12 }}>Ce mois-ci</Text>
+      <Text style={{ fontFamily: fonts.display700, fontSize: 19, color: t.ink, marginLeft: 4, marginBottom: 12, textTransform: 'capitalize' }}>
+        {sectionTitle}
+      </Text>
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <Stat kind="in" value={stats.inn} />
         <Stat kind="out" value={stats.out} />
@@ -187,31 +192,64 @@ export default function Home() {
           </Text>
         )}
       </PressScale>
-      {alerts.length > 0 && (
-        <Pressable
+      {period.isMonth && (
+        <PressScale
           accessibilityRole="button"
-          accessibilityLabel={`Budgets : ${over.length} dépassé${over.length > 1 ? 's' : ''}, ${alerts.length - over.length} proche${alerts.length - over.length > 1 ? 's' : ''} de la limite. Ouvrir le rapport`}
-          onPress={() => router.navigate('/report')}
-          style={{
-            marginTop: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-            backgroundColor: over.length ? t.outSoft : t.card,
-            borderColor: over.length ? t.out : t.warn,
-            borderWidth: 1,
-            borderRadius: 20,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            minHeight: 44,
-          }}>
-          <Text style={{ flex: 1, fontFamily: fonts.body600, fontSize: 14, color: over.length ? t.out : t.warnInk }}>
-            {over.length
-              ? `Budget dépassé : ${over.map((b) => b.cat.name).join(', ')}`
-              : `Proche de la limite : ${alerts.map((b) => b.cat.name).join(', ')}`}
-          </Text>
-          <Glyph name="right" color={t.mute} />
-        </Pressable>
+          accessibilityLabel={
+            budget
+              ? `Budget du mois : ${fcfa(budget.spent)} dépensés sur ${fcfa(budget.limit)}${over.length ? `, ${over.length} catégorie${over.length > 1 ? 's' : ''} dépassée${over.length > 1 ? 's' : ''}` : ''}. Ouvrir le rapport`
+              : 'Aucun budget fixé. Fixer un budget'
+          }
+          onPress={() => (budget ? router.navigate('/report') : router.push('/budgets'))}
+          scaleTo={0.98}
+          style={[
+            {
+              marginTop: 12,
+              backgroundColor: t.card,
+              borderColor: budget?.status === 'over' ? t.out : budget?.status === 'warn' ? t.warn : t.line,
+              borderWidth: 1,
+              borderRadius: 24,
+              padding: 16,
+            },
+            shadow(t),
+          ]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute }}>Budget du mois</Text>
+              {budget ? (
+                <Text style={{ fontFamily: fonts.display700, fontSize: 20, letterSpacing: -0.4, color: t.ink }}>
+                  {fcfa(budget.spent)} <Text style={{ fontFamily: fonts.body400, fontSize: 14, color: t.mute }}>/ {fcfa(budget.limit)}</Text>
+                </Text>
+              ) : (
+                <Text style={{ fontFamily: fonts.body600, fontSize: 15, color: t.ink, marginTop: 2 }}>
+                  Fixe une limite par catégorie pour savoir où tu en es.
+                </Text>
+              )}
+            </View>
+            {budget ? <Glyph name="right" color={t.mute} /> : <Text style={{ fontFamily: fonts.body700, fontSize: 14, color: t.brand }}>Fixer</Text>}
+          </View>
+          {budget && (
+            <>
+              <Meter
+                pct={Math.min(budget.ratio, 1) * 100}
+                color={budget.status === 'over' ? t.out : budget.status === 'warn' ? t.warn : t.brand}
+              />
+              <Text
+                style={{
+                  fontFamily: fonts.body500,
+                  fontSize: 13,
+                  marginTop: 8,
+                  color: over.length ? t.out : flagged.length ? t.warnInk : t.mute,
+                }}>
+                {over.length
+                  ? `Dépassé : ${over.map((b) => b.cat.name).join(', ')}`
+                  : flagged.length
+                    ? `Proche de la limite : ${flagged.map((b) => b.cat.name).join(', ')}`
+                    : `Reste ${fcfa(Math.max(budget.limit - budget.spent, 0))} sur tes limites`}
+              </Text>
+            </>
+          )}
+        </PressScale>
       )}
       <Card>
         <H3>Solde sur 30 jours</H3>

@@ -3,6 +3,8 @@ export type ThemePref = 'auto' | 'light' | 'dark';
 
 export interface Category {
   id: string;
+  /** Which kind of transaction can use this category. */
+  kind: TxType;
   name: string;
   color: string;
   icon: string;
@@ -15,6 +17,8 @@ export interface Transaction {
   cat: string;
   date: string; // YYYY-MM-DD
   note: string;
+  /** File name of a receipt photo kept on the device (never a full path). */
+  photo?: string;
 }
 
 /** A named target inside the savings pot (trip, emergency fund…). */

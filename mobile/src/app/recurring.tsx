@@ -30,6 +30,9 @@ export default function Recurring() {
   const [note, setNote] = useState('');
   const [cat, setCat] = useState(state.cats[0].id);
   const [err, setErr] = useState('');
+  // Only the categories matching the rule's kind; fall back to the first one when the kind changes.
+  const catOptions = state.cats.filter((c) => c.kind === kind);
+  const catValue = catOptions.some((c) => c.id === cat) ? cat : (catOptions[0]?.id ?? 'autre');
 
   const add = () => {
     const n = parseAmount(amount);
@@ -40,7 +43,7 @@ export default function Recurring() {
       id: newId(),
       kind,
       amount: n,
-      cat: kind === 'save' ? 'autre' : cat,
+      cat: kind === 'save' ? 'autre' : catValue,
       note: note.trim() || (kind === 'save' ? 'Épargne automatique' : ''),
       day: d,
       startMonth: mkey(today()),
@@ -162,7 +165,7 @@ export default function Recurring() {
         {kind !== 'save' && (
           <>
             <Label>Catégorie</Label>
-            <CatPicker cats={state.cats} value={cat} onChange={setCat} />
+            <CatPicker cats={catOptions} value={catValue} onChange={setCat} />
           </>
         )}
         <Label>Libellé (facultatif)</Label>

@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useRef, type MutableRefObject, ty
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glyph } from './Icon';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from './KeyboardDone';
 import { fonts, useTheme, type Theme } from '@/theme';
 
 export const field = (t: Theme) => ({
@@ -78,6 +79,7 @@ export function SheetFrame({ title, onClose, children }: { title: string; onClos
               </View>
             </Pressable>
           </View>
+          <KeyboardDoneBar />
           <SheetScrollContext.Provider value={scrollToEnd}>{children}</SheetScrollContext.Provider>
         </ScrollView>
       </View>
@@ -111,6 +113,7 @@ export function AmountInput({
         accessibilityLabel="Montant en FCFA"
         autoFocus={autoFocus}
         onSubmitEditing={onSubmit}
+        inputAccessoryViewID={KEYBOARD_DONE_ID}
         style={{
           width: Math.max(80, (value.length + 1) * 30),
           textAlign: 'center',

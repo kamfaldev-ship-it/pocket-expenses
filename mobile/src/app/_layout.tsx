@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AddSheet } from '@/components/AddSheet';
+import { BudgetSheet } from '@/components/BudgetSheet';
+import { PeriodSheet } from '@/components/PeriodSheet';
 import { LockScreen } from '@/components/LockScreen';
 import { SavingsSheet } from '@/components/SavingsSheet';
 import { Toast } from '@/components/Toast';
@@ -66,6 +68,8 @@ function Shell() {
       <Toast />
       <AddSheet />
       <SavingsSheet />
+      <PeriodSheet />
+      <BudgetSheet />
       <LockScreen />
     </View>
   );

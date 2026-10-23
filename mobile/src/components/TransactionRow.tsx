@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
+import { Image } from 'expo-image';
 import { CatBadge, shadow } from './ui';
+import { PhotoViewer } from './PhotoViewer';
 import { Glyph } from './Icon';
 import { PressScale } from './motion';
 import { dayMonthShort } from '@/lib/dates';
 import { fcfa } from '@/lib/format';
+import { photoUri } from '@/lib/photos';
 import { findCat } from '@/lib/selectors';
 import type { Category, Transaction } from '@/lib/types';
 import { fonts, useTheme } from '@/theme';
@@ -21,6 +24,7 @@ export function TransactionRow({ tx, cats, onEdit, onDelete }: Props) {
   const t = useTheme();
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const cat = findCat(cats, tx.cat);
   const isIn = tx.type === 'in';
   const date = dayMonthShort(tx.date);
@@ -40,7 +44,10 @@ export function TransactionRow({ tx, cats, onEdit, onDelete }: Props) {
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 }}>
         <CatBadge cat={cat} />
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: fonts.body600, fontSize: 15, color: t.ink }}>{cat.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontFamily: fonts.body600, fontSize: 15, color: t.ink, flexShrink: 1 }}>{cat.name}</Text>
+            {tx.photo ? <Glyph name="camera" color={t.mute} size={15} /> : null}
+          </View>
           <Text numberOfLines={1} style={{ fontFamily: fonts.body400, fontSize: 13, color: t.mute }}>
             {tx.note ? tx.note.replace(/\s+/g, ' ') : date}
           </Text>
@@ -68,6 +75,11 @@ export function TransactionRow({ tx, cats, onEdit, onDelete }: Props) {
               {tx.note}
             </Text>
           ) : null}
+          {tx.photo ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Voir la photo jointe" onPress={() => setViewing(true)} style={{ marginBottom: 10 }}>
+              <Image source={{ uri: photoUri(tx.photo) }} contentFit="cover" style={{ width: '100%', height: 150, borderRadius: 14, backgroundColor: t.line }} />
+            </Pressable>
+          ) : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <Text style={{ fontFamily: fonts.body400, fontSize: 13.5, color: t.mute, flexShrink: 1 }}>
               {date}
@@ -89,6 +101,7 @@ export function TransactionRow({ tx, cats, onEdit, onDelete }: Props) {
           </View>
         </View>
       )}
+      <PhotoViewer name={viewing && tx.photo ? tx.photo : null} onClose={() => setViewing(false)} />
     </Animated.View>
   );
 }

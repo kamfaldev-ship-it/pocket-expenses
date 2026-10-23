@@ -1,5 +1,7 @@
 import * as Haptics from 'expo-haptics';
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { CatGlyph } from './Icon';
 import { PressScale } from './motion';
 import { fonts, useTheme, type Theme } from '@/theme';
@@ -128,3 +130,19 @@ const s = StyleSheet.create({
   segOn: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   btn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 16 },
 });
+
+/** Thin progress bar that animates to `pct` (0-100); respects reduced motion. */
+export function Meter({ pct, color }: { pct: number; color: string }) {
+  const t = useTheme();
+  const reduce = useReducedMotion();
+  const w = useSharedValue(reduce ? pct : 0);
+  useEffect(() => {
+    w.value = reduce ? pct : withTiming(pct, { duration: 900, easing: Easing.bezier(0.2, 0.8, 0.2, 1) });
+  }, [pct, w, reduce]);
+  const style = useAnimatedStyle(() => ({ width: `${w.value}%` }));
+  return (
+    <View style={{ height: 6, borderRadius: 9, backgroundColor: t.line, overflow: 'hidden', marginTop: 6 }}>
+      <Animated.View style={[{ height: '100%', borderRadius: 9, backgroundColor: color }, style]} />
+    </View>
+  );
+}

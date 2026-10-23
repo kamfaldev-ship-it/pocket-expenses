@@ -30,21 +30,25 @@ export const ICONS: Record<string, IconShape[]> = {
 
 export const COLORS = ['#6C63FF', '#F97316', '#22C55E', '#3B82F6', '#EC4899', '#EAB308', '#14B8A6', '#8B8AA3'];
 
-export const FALLBACK_CAT: Category = { id: 'autre', name: 'Autre', color: '#8B8AA3', icon: 'dots' };
+export const FALLBACK_CAT: Category = { id: 'autre', kind: 'out', name: 'Autre', color: '#8B8AA3', icon: 'dots' };
 
 // Ids stay stable across renames: tests and saved data refer to them.
 export const DEFAULT_CATS: Category[] = [
-  { id: 'freelance', name: 'Salaire', color: '#22C55E', icon: 'briefcase' },
-  { id: 'courses', name: 'Nourriture', color: '#F97316', icon: 'cart' },
-  { id: 'transport', name: 'Transport', color: '#3B82F6', icon: 'car' },
-  { id: 'loyer', name: 'Loyer', color: '#6C63FF', icon: 'home' },
-  { id: 'factures', name: 'Eau et électricité', color: '#14B8A6', icon: 'tool' },
-  { id: 'data', name: 'Crédit et data', color: '#EAB308', icon: 'phone' },
-  { id: 'famille', name: 'Famille', color: '#EC4899', icon: 'heart' },
-  { id: 'social', name: 'Cotisations', color: '#8B5CF6', icon: 'gift' },
-  { id: 'loisirs', name: 'Sorties', color: '#F43F5E', icon: 'coffee' },
-  { id: 'frais', name: 'Frais', color: '#64748B', icon: 'dots' },
-  { id: 'autre', name: 'Autre', color: '#8B8AA3', icon: 'dots' },
+  { id: 'freelance', kind: 'in', name: 'Salaire', color: '#22C55E', icon: 'briefcase' },
+  { id: 'ventes', kind: 'in', name: 'Ventes et activité', color: '#14B8A6', icon: 'cart' },
+  { id: 'aide', kind: 'in', name: 'Aide reçue', color: '#EC4899', icon: 'heart' },
+  { id: 'prime', kind: 'in', name: 'Prime', color: '#EAB308', icon: 'gift' },
+  { id: 'autre_in', kind: 'in', name: 'Autre entrée', color: '#8B8AA3', icon: 'dots' },
+  { id: 'courses', kind: 'out', name: 'Nourriture', color: '#F97316', icon: 'cart' },
+  { id: 'transport', kind: 'out', name: 'Transport', color: '#3B82F6', icon: 'car' },
+  { id: 'loyer', kind: 'out', name: 'Loyer', color: '#6C63FF', icon: 'home' },
+  { id: 'factures', kind: 'out', name: 'Eau et électricité', color: '#14B8A6', icon: 'tool' },
+  { id: 'data', kind: 'out', name: 'Crédit et data', color: '#EAB308', icon: 'phone' },
+  { id: 'famille', kind: 'out', name: 'Famille', color: '#EC4899', icon: 'heart' },
+  { id: 'social', kind: 'out', name: 'Cotisations', color: '#8B5CF6', icon: 'gift' },
+  { id: 'loisirs', kind: 'out', name: 'Sorties', color: '#F43F5E', icon: 'coffee' },
+  { id: 'frais', kind: 'out', name: 'Frais', color: '#64748B', icon: 'dots' },
+  { id: 'autre', kind: 'out', name: 'Autre', color: '#8B8AA3', icon: 'dots' },
 ];
 
 export const initialState = (): AppState => ({

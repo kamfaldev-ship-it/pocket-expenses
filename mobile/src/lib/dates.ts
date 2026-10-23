@@ -39,3 +39,43 @@ export const dayLong = (s: string) => {
 
 /** "oct." from "2026-10" */
 export const monthShort = (k: string) => MONTHS_SHORT[Number(k.split('-')[1]) - 1];
+
+/** An inclusive range of days, YYYY-MM-DD on both ends. */
+export interface Period {
+  from: string;
+  to: string;
+}
+
+/** A month key ("2026-10") or an explicit range. */
+export type PeriodInput = string | Period;
+
+export const monthRange = (k: string): Period => {
+  const [y, m] = k.split('-').map(Number);
+  return { from: `${k}-01`, to: iso(new Date(y, m, 0)) };
+};
+
+export const toPeriod = (p: PeriodInput): Period => (typeof p === 'string' ? monthRange(p) : p);
+
+export const inRange = (date: string, p: Period) => date >= p.from && date <= p.to;
+
+/** True when the range is exactly one calendar month (monthly budgets apply). */
+export const isFullMonth = (p: Period) => {
+  const full = monthRange(mkey(p.from));
+  return p.from === full.from && p.to === full.to;
+};
+
+/** "13 sept. → 15 oct." or "13 sept." for a single day; years appear only when they differ. */
+export const periodLabel = (p: Period) => {
+  if (p.from === p.to) return dayMonthShort(p.from);
+  const y1 = p.from.slice(0, 4);
+  const y2 = p.to.slice(0, 4);
+  const withYear = y1 !== y2;
+  return `${dayMonthShort(p.from)}${withYear ? ` ${y1}` : ''} → ${dayMonthShort(p.to)}${withYear ? ` ${y2}` : ''}`;
+};
+
+/** The day `n` days from `date`. */
+export const addDays = (date: string, n: number) => {
+  const d = parseDate(date);
+  d.setDate(d.getDate() + n);
+  return iso(d);
+};

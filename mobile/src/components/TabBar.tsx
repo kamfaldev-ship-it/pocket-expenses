@@ -73,7 +73,7 @@ export function TabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
       <View style={{ flex: 1, alignItems: 'center' }}>
         <PressScale
           accessibilityRole="button"
-          accessibilityLabel="Ajouter une transaction"
+          accessibilityLabel="Ajouter une opération"
           scaleTo={0.9}
           hitSlop={8}
           onPress={() => {

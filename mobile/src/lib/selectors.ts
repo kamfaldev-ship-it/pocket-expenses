@@ -1,5 +1,5 @@
 import { FALLBACK_CAT } from './defaults';
-import { iso, mkey } from './dates';
+import { inRange, iso, mkey, toPeriod, type PeriodInput } from './dates';
 import type { AppState, Category, Transaction } from './types';
 
 export const signed = (t: Transaction) => (t.type === 'in' ? t.amount : -t.amount);
@@ -9,8 +9,10 @@ export const cmp = (a: Transaction, b: Transaction) => b.date.localeCompare(a.da
 
 export const findCat = (cats: Category[], id: string): Category => cats.find((c) => c.id === id) ?? FALLBACK_CAT;
 
-export const monthStats = (tx: Transaction[], month: string) => {
-  const m = tx.filter((t) => mkey(t.date) === month);
+/** Totals for a month key or an explicit period. */
+export const monthStats = (tx: Transaction[], period: PeriodInput) => {
+  const p = toPeriod(period);
+  const m = tx.filter((t) => inRange(t.date, p));
   const inn = sum(m.filter((t) => t.type === 'in'));
   const out = sum(m.filter((t) => t.type === 'out'));
   return { inn, out, net: inn - out };
@@ -76,8 +78,9 @@ export interface CatRow {
   pct: number;
 }
 
-export const reportRows = (state: AppState, month: string, type: 'in' | 'out') => {
-  const m = state.tx.filter((t) => mkey(t.date) === month && t.type === type);
+export const reportRows = (state: AppState, period: PeriodInput, type: 'in' | 'out') => {
+  const p = toPeriod(period);
+  const m = state.tx.filter((t) => inRange(t.date, p) && t.type === type);
   const total = sum(m);
   const by: Record<string, number> = {};
   m.forEach((t) => (by[t.cat] = (by[t.cat] || 0) + t.amount));

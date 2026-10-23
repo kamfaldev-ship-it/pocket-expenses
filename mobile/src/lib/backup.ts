@@ -9,14 +9,15 @@ const isDate = (v: unknown): v is string => isStr(v) && /^\d{4}-\d{2}-\d{2}$/.te
 const isMonth = (v: unknown): v is string => isStr(v) && /^\d{4}-\d{2}$/.test(v);
 const isRec = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
+/** Data saved before 1.4 has no `kind`: only the salary category was an income. */
 const asCat = (v: unknown): Category | null =>
   isRec(v) && isStr(v.id) && isStr(v.name) && isStr(v.color) && isStr(v.icon)
-    ? { id: v.id, name: v.name, color: v.color, icon: v.icon }
+    ? { id: v.id, kind: v.kind === 'in' || v.kind === 'out' ? v.kind : v.id === 'freelance' ? 'in' : 'out', name: v.name, color: v.color, icon: v.icon }
     : null;
 
 const asTx = (v: unknown): Transaction | null =>
   isRec(v) && isNum(v.id) && isNum(v.amount) && v.amount > 0 && (v.type === 'in' || v.type === 'out') && isStr(v.cat) && isDate(v.date)
-    ? { id: v.id, amount: v.amount, type: v.type, cat: v.cat, date: v.date, note: isStr(v.note) ? v.note : '' }
+    ? { id: v.id, amount: v.amount, type: v.type, cat: v.cat, date: v.date, note: isStr(v.note) ? v.note : '', ...(isStr(v.photo) && v.photo !== '' ? { photo: v.photo } : {}) }
     : null;
 
 const asGoal = (v: unknown): SavingsGoal | null =>
@@ -91,6 +92,10 @@ export function normalizeState(d: unknown, strict: boolean): AppState | null {
   const budgets = asBudgets(d.budgets, strict);
   if (!cats || !tx || !savings || !recurring || !goalList || !budgets) return null;
   if (!Array.isArray(d.cats) || !Array.isArray(d.tx) || cats.length === 0) return null;
+  // Legacy data (no `kind`) gets the new income categories once; later deletions stay deleted.
+  const legacy = (d.cats as unknown[]).some((c) => isRec(c) && c.kind === undefined);
+  const have = new Set(cats.map((c) => c.id));
+  const withKinds = legacy ? [...cats, ...DEFAULT_CATS.filter((c) => c.kind === 'in' && !have.has(c.id))] : cats;
   let goals = goalList;
   let entries = savings;
   if (d.goals === undefined && isNum(d.savingsGoal) && d.savingsGoal > 0) {
@@ -100,7 +105,7 @@ export function normalizeState(d: unknown, strict: boolean): AppState | null {
   }
   const known = new Set(goals.map((g) => g.id));
   return {
-    cats,
+    cats: withKinds,
     tx,
     savings: entries.map((e) => (e.goalId !== null && !known.has(e.goalId) ? { ...e, goalId: null } : e)),
     recurring,
@@ -110,8 +115,11 @@ export function normalizeState(d: unknown, strict: boolean): AppState | null {
   };
 }
 
+/** Photos stay on the device: the backup carries no reference to them. */
+const withoutPhotos = (s: AppState): AppState => ({ ...s, tx: s.tx.map(({ photo: _photo, ...t }) => t) });
+
 export const serializeBackup = (s: AppState, exportedAt = new Date()) =>
-  JSON.stringify({ app: 'pocket', version: BACKUP_VERSION, exportedAt: exportedAt.toISOString(), data: s }, null, 2);
+  JSON.stringify({ app: 'pocket', version: BACKUP_VERSION, exportedAt: exportedAt.toISOString(), data: withoutPhotos(s) }, null, 2);
 
 export type ParsedBackup =
   | { ok: true; state: AppState; summary: { tx: number; savings: number; recurring: number } }
@@ -128,7 +136,8 @@ export function parseBackup(raw: string): ParsedBackup {
   if (isRec(json) && json.app === 'pocket' && isNum(json.version) && json.version > BACKUP_VERSION) {
     return { ok: false, error: 'Cette sauvegarde vient d’une version plus récente de Pocket. Mets l’app à jour.' };
   }
-  const state = normalizeState(payload, true);
+  const parsed = normalizeState(payload, true);
+  const state = parsed && withoutPhotos(parsed);
   if (!state) return { ok: false, error: 'Les données de ce fichier sont incomplètes ou corrompues.' };
   return { ok: true, state, summary: { tx: state.tx.length, savings: state.savings.length, recurring: state.recurring.length } };
 }
