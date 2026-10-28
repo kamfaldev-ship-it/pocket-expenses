@@ -147,6 +147,7 @@ export function SavingsSheet() {
   const closeRef = useRef<() => void>(closeSavings);
   return (
     <Modal
+      key={savingsSheet.nonce}
       visible={savingsSheet.open}
       transparent
       animationType="slide"

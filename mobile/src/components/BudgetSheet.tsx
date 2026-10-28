@@ -64,7 +64,7 @@ export function BudgetSheet() {
   const { budgetSheet, closeBudget } = useUI();
   const closeRef = useRef<() => void>(closeBudget);
   return (
-    <Modal visible={budgetSheet.open} transparent animationType="slide" onRequestClose={() => closeRef.current()} statusBarTranslucent>
+    <Modal key={budgetSheet.nonce} visible={budgetSheet.open} transparent animationType="slide" onRequestClose={() => closeRef.current()} statusBarTranslucent>
       <Body key={budgetSheet.nonce} closeRef={closeRef} />
     </Modal>
   );

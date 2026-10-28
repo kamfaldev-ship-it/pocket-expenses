@@ -19,3 +19,4 @@ Après chaque modification (code, suppression, config), mets à jour tous les fi
 
 - Onboarding au premier lancement : `store/onboarding.tsx` + `components/Onboarding.tsx` (détails dans `mobile/README.md`).
 - Bug de la croix de la feuille d'ajout : correctif `Keyboard.dismiss()` dans `useGuardedClose`, à confirmer sur appareil.
+- 1.5.1 : `key={nonce}` sur la `Modal` des feuilles d'ajout, d'épargne et de budget (2e tentative sur la croix qui ne répond plus).

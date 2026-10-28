@@ -45,6 +45,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
+- **1.5.1** : deuxième tentative sur la croix de la feuille d'ajout (une `Modal` neuve par ouverture). Aucune fonction ajoutée.
 - **1.5.0** : onboarding au premier lancement (3 écrans : bienvenue, le « + », données et compte à venir), en préparation de Supabase. Correction de la croix de la feuille d'ajout qui ne fermait plus à la deuxième ouverture (clavier fermé avant la fermeture).
 - **1.4.0** : retours d'usage. Titre « Ajouter une opération » ; catégories séparées entre dépenses et entrées ; budgets plus rapides (placeholder « 0 », clavier avec « OK », retour automatique, feuille d'édition rapide depuis le rapport) ; carte « Budget du mois » sur l'accueil ; période libre (du … au …, ou un seul jour) sur l'accueil, le rapport et l'historique ; photos de reçus, locales et sans compte.
 - **1.3.3** : correction du clavier qui cachait le champ Note (Android surtout). Aucune fonction ajoutée.
@@ -107,7 +108,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Rebond sur changement** : `Bump` (se déclenche à chaque changement de `trigger`, jamais au premier rendu).
 - **Drapeaux de fonctionnalités** : `lib/features.ts` (`FEATURES`). L'interface teste `FEATURES.x || donnéesExistantes` avant d'afficher une fonction secondaire. Masquer sans supprimer garde le code testé et rend le retour en arrière immédiat.
 - **Récurrences idempotentes** : `lastApplied` par règle, application au lancement et au retour au premier plan, rattrapage des mois manqués sans doublon.
-- **Formulaires réinitialisés par `key`** (`nonce`) plutôt que par effet.
+- **Formulaires réinitialisés par `key`** (`nonce`) plutôt que par effet. Depuis 1.5.1 la `key` est aussi sur la `Modal`, pas seulement sur son contenu.
 - **Fermeture gardée** des feuilles (`useGuardedClose`) : confirmation si saisie non vide, partagée avec le bouton retour Android.
 - **Réduction des animations** : `useReducedMotion` partout (courbe, donut, jauges, entrées).
 - **Suppression d'un sous-projet** : lister d'abord les fichiers suivis (`git ls-files`), chercher les références depuis le code conservé (`grep ../`, `index.html`, `capacitor`), supprimer avec `git rm`, puis mettre à jour les docs et relancer `tsc`, `eslint`, `jest`.
@@ -115,7 +116,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 
 ## Erreurs rencontrées et corrigées
 
-- **Croix de la feuille d'ajout sans effet à la 2e ouverture (1.5.0)** : symptôme rapporté, non reproduit (pas de simulateur iOS ni de navigateur disponible pendant la session). La logique d'état (`openSheet`/`closeSheet`, `key` par `nonce`) est correcte à la lecture ; la piste retenue est le clavier : le champ montant a `autoFocus`, et une `Modal` fermée clavier levé ne reçoit pas l'événement de masquage, ce qui laisse `KeyboardAvoidingView` / `InputAccessoryView` dans un état périmé à l'ouverture suivante. Correctif : `Keyboard.dismiss()` dans `useGuardedClose` (donc pour toutes les feuilles). **À confirmer sur téléphone** ; si le bug persiste, regarder `KeyboardDoneBar` (même `nativeID` monté dans plusieurs feuilles).
+- **Croix de la feuille d'ajout sans effet à la 2e ouverture (1.5.0)** : symptôme rapporté, non reproduit (pas de simulateur iOS ni de navigateur disponible pendant la session). La logique d'état (`openSheet`/`closeSheet`, `key` par `nonce`) est correcte à la lecture ; la piste retenue est le clavier : le champ montant a `autoFocus`, et une `Modal` fermée clavier levé ne reçoit pas l'événement de masquage, ce qui laisse `KeyboardAvoidingView` / `InputAccessoryView` dans un état périmé à l'ouverture suivante. Correctif : `Keyboard.dismiss()` dans `useGuardedClose` (donc pour toutes les feuilles). **Insuffisant** : le bug persistait (la croix ne fait plus rien à la 2e ouverture). Deuxième piste (1.5.1) : `Modal` natif réutilisé entre deux ouvertures, avec un état de fermeture iOS/Android périmé. Correctif : `key={nonce}` sur la `Modal` elle-même (`AddSheet`, `SavingsSheet`, `BudgetSheet`), donc une fenêtre native neuve à chaque ouverture. Toujours à confirmer sur téléphone, après `npx expo start -c` (Metro ne voit pas les changements dans ce dossier) ; si le bug persiste, regarder `KeyboardDoneBar` (même `nativeID` monté dans plusieurs feuilles).
 
 - Hook appelé au-dessus du fournisseur de contexte : `useScrollToEnd()` dans `SheetBody` ne recevait rien, car le contexte est fourni par `SheetFrame`. Corrigé en sortant le champ dans un composant enfant (`NoteInput`).
 - Test de budget écrit de travers (assertion qui ne vérifiait rien) : remplacé par une comparaison directe de l'ordre « le plus consommé d'abord ».

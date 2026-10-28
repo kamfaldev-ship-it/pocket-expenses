@@ -190,6 +190,7 @@ export function AddSheet() {
   const closeRef = useRef<() => void>(closeSheet);
   return (
     <Modal
+      key={sheet.nonce}
       visible={sheet.open}
       transparent
       animationType="slide"
