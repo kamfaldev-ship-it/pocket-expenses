@@ -67,21 +67,22 @@ export function SheetFrame({ title, onClose, children }: { title: string; onClos
           paddingBottom: 22 + insets.bottom,
         }}>
         <View style={{ width: 42, height: 5, borderRadius: 9, backgroundColor: t.line, alignSelf: 'center', marginBottom: 8 }} />
-        <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <Text accessibilityRole="header" style={{ fontFamily: fonts.display700, fontSize: 21, color: t.ink, marginLeft: 2, flexShrink: 1 }}>
-              {title}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Fermer"
-              onPress={onClose}
-              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.line, alignItems: 'center', justifyContent: 'center' }}>
-                <Glyph name="close" color={t.mute} size={18} />
-              </View>
-            </Pressable>
-          </View>
+        {/* Outside the ScrollView: a touch on the close button must never depend on scroll gesture state. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <Text accessibilityRole="header" style={{ fontFamily: fonts.display700, fontSize: 21, color: t.ink, marginLeft: 2, flexShrink: 1 }}>
+            {title}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Fermer"
+            onPress={onClose}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.line, alignItems: 'center', justifyContent: 'center' }}>
+              <Glyph name="close" color={t.mute} size={18} />
+            </View>
+          </Pressable>
+        </View>
+        <ScrollView ref={scrollRef} style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
           <KeyboardDoneBar />
           <SheetScrollContext.Provider value={scrollToEnd}>{children}</SheetScrollContext.Provider>
         </ScrollView>
