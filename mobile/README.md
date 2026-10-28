@@ -45,6 +45,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
+- **1.5.0** : onboarding au premier lancement (3 écrans : bienvenue, le « + », données et compte à venir), en préparation de Supabase. Correction de la croix de la feuille d'ajout qui ne fermait plus à la deuxième ouverture (clavier fermé avant la fermeture).
 - **1.4.0** : retours d'usage. Titre « Ajouter une opération » ; catégories séparées entre dépenses et entrées ; budgets plus rapides (placeholder « 0 », clavier avec « OK », retour automatique, feuille d'édition rapide depuis le rapport) ; carte « Budget du mois » sur l'accueil ; période libre (du … au …, ou un seul jour) sur l'accueil, le rapport et l'historique ; photos de reçus, locales et sans compte.
 - **1.3.3** : correction du clavier qui cachait le champ Note (Android surtout). Aucune fonction ajoutée.
 - **1.3.2** : micro-animations. Ressort au toucher sur boutons, cartes, lignes et barre d'onglets ; le solde et les totaux roulent vers leur nouvelle valeur ; la pastille du solde du jour fait un petit rebond quand elle change ; une transaction supprimée s'efface en fondu. Aucune fonction ajoutée.
@@ -53,6 +54,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.2.1** : suppression de la partie web (`index.html`, `www/`, `ios/` Capacitor, PWA, config Vercel). Aucun changement de fonction.
 
 ## Décisions
+
+- **Onboarding (1.5.0)** : demandé par l'utilisateur car une base Supabase va être ajoutée. 3 écrans, « Passer » possible, jamais de compte forcé : le texte annonce seulement qu'un compte viendra, sans promettre de date. Pas d'écran de connexion tant que Supabase n'est pas branché. Ce sera l'endroit où brancher l'inscription.
 
 - **Titre du « + » (1.4.0)** : « Ajouter une opération », neutre car la feuille sert aux dépenses comme aux entrées. Demandé par l'utilisateur : « Nouvelle transaction » faisait trop bancaire.
 - **Catégories par type (1.4.0)** : l'utilisateur a relevé que Loyer, Outils ou Sorties apparaissaient dans les Entrées. Chaque catégorie a un `kind`. Entrées par défaut : Salaire, Ventes et activité, Aide reçue, Prime, Autre entrée. Les ids existants ne bougent pas. Supprimer une catégorie renvoie ses opérations vers « Autre » du même type, et on ne peut pas supprimer la dernière catégorie d'un type. À la modification d'une ancienne opération dont la catégorie n'est plus du bon type, cette catégorie reste proposée pour ne rien changer en silence.
@@ -86,6 +89,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 
 ## Patterns utilisés
 
+- **Onboarding hors données** : `store/onboarding.tsx` (clé `pocket.onboarded`, comme `pocket.lock`, hors sauvegarde JSON). `components/Onboarding.tsx` est un calque absolu dans `Shell`, pas une `Modal`, pour ne pas se battre avec les feuilles natives. Le splash reste affiché tant que le drapeau n'est pas lu (pas de flash).
+
 - **Période dérivée** : `useUI().period` (`from`, `to`, `isMonth`, `label`) vient de `range ?? monthRange(month)`. Les sélecteurs (`monthStats`, `reportRows`, `budgetRows`) acceptent un mois (`'2026-10'`) ou une période (`PeriodInput`), donc les anciens appels et tests ne changent pas.
 - **Migration par champ absent** : `kind` manquant = données d'avant 1.4 (ajout unique des nouvelles catégories). Une fois sauvegardées, une catégorie supprimée reste supprimée.
 - **Photos par nom de fichier + nettoyage des orphelins** : `lib/photos.ts` (`savePhoto`, `photoUri`, `cleanupOrphans`, `orphanNames` pur et testé).
@@ -109,6 +114,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Écran de verrouillage dans un `Modal`** : les feuilles sont des modales natives qui passeraient au-dessus d'un simple calque, donc on les ferme au verrouillage.
 
 ## Erreurs rencontrées et corrigées
+
+- **Croix de la feuille d'ajout sans effet à la 2e ouverture (1.5.0)** : symptôme rapporté, non reproduit (pas de simulateur iOS ni de navigateur disponible pendant la session). La logique d'état (`openSheet`/`closeSheet`, `key` par `nonce`) est correcte à la lecture ; la piste retenue est le clavier : le champ montant a `autoFocus`, et une `Modal` fermée clavier levé ne reçoit pas l'événement de masquage, ce qui laisse `KeyboardAvoidingView` / `InputAccessoryView` dans un état périmé à l'ouverture suivante. Correctif : `Keyboard.dismiss()` dans `useGuardedClose` (donc pour toutes les feuilles). **À confirmer sur téléphone** ; si le bug persiste, regarder `KeyboardDoneBar` (même `nativeID` monté dans plusieurs feuilles).
 
 - Hook appelé au-dessus du fournisseur de contexte : `useScrollToEnd()` dans `SheetBody` ne recevait rien, car le contexte est fourni par `SheetFrame`. Corrigé en sortant le champ dans un composant enfant (`NoteInput`).
 - Test de budget écrit de travers (assertion qui ne vérifiait rien) : remplacé par une comparaison directe de l'ordre « le plus consommé d'abord ».

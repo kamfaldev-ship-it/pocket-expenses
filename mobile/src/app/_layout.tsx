@@ -9,11 +9,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AddSheet } from '@/components/AddSheet';
 import { BudgetSheet } from '@/components/BudgetSheet';
 import { PeriodSheet } from '@/components/PeriodSheet';
+import { Onboarding } from '@/components/Onboarding';
 import { LockScreen } from '@/components/LockScreen';
 import { SavingsSheet } from '@/components/SavingsSheet';
 import { Toast } from '@/components/Toast';
 import { StoreProvider, useStore } from '@/store';
 import { LockProvider, useLock } from '@/store/lock';
+import { OnboardingProvider, useOnboarding } from '@/store/onboarding';
 import { UIProvider, useUI } from '@/store/ui';
 import { fonts, ThemeProvider, useTheme } from '@/theme';
 
@@ -34,6 +36,7 @@ function Shell() {
   const t = useTheme();
   const { ready } = useStore();
   const lock = useLock();
+  const onboarding = useOnboarding();
   const { closeSheet, closeSavings } = useUI();
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_500Medium,
@@ -44,7 +47,7 @@ function Shell() {
     Figtree_600SemiBold,
     Figtree_700Bold,
   });
-  const loaded = ready && fontsLoaded && lock.loaded;
+  const loaded = ready && fontsLoaded && lock.loaded && onboarding.loaded;
   // Sheets are native modals that would sit above the lock cover, so close them when locking.
   useEffect(() => {
     if (lock.locked) {
@@ -66,6 +69,7 @@ function Shell() {
         <Stack.Screen name="settings" options={pushed(t, 'Réglages')} />
       </Stack>
       <Toast />
+      <Onboarding />
       <AddSheet />
       <SavingsSheet />
       <PeriodSheet />
@@ -82,7 +86,9 @@ export default function RootLayout() {
         <ThemeProvider>
           <LockProvider>
             <UIProvider>
-              <Shell />
+              <OnboardingProvider>
+                <Shell />
+              </OnboardingProvider>
             </UIProvider>
           </LockProvider>
         </ThemeProvider>

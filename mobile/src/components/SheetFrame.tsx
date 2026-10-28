@@ -1,6 +1,6 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glyph } from './Icon';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from './KeyboardDone';
@@ -21,6 +21,9 @@ export const field = (t: Theme) => ({
  */
 export function useGuardedClose(dirty: boolean, close: () => void, ref: MutableRefObject<() => void>) {
   const request = () => {
+    // Close the keyboard first: a Modal dismissed with the keyboard up never delivers the
+    // "keyboard hide" event, so the next sheet started from a stale keyboard/accessory state.
+    Keyboard.dismiss();
     // Alert is a no-op on web; never trap the user there.
     if (!dirty || Platform.OS === 'web') return close();
     Alert.alert('Abandonner la saisie ?', 'Ce que tu as saisi ne sera pas enregistré.', [

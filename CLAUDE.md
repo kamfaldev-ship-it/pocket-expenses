@@ -14,3 +14,8 @@ Après chaque modification (code, suppression, config), mets à jour tous les fi
 - App Expo (SDK 58) dans `mobile/`. La partie web d'origine a été supprimée : seul le mobile reste.
 - Interface en français, montants en FCFA.
 - Avant de conclure : `npx tsc --noEmit`, `npx eslint src`, `npx jest`.
+
+## Notes de session (1.5.0)
+
+- Onboarding au premier lancement : `store/onboarding.tsx` + `components/Onboarding.tsx` (détails dans `mobile/README.md`).
+- Bug de la croix de la feuille d'ajout : correctif `Keyboard.dismiss()` dans `useGuardedClose`, à confirmer sur appareil.
