@@ -142,7 +142,7 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - ESLint `react-hooks/immutability` refuse `sharedValue.value = …` dans un gestionnaire (`onPressIn`) : utiliser `sharedValue.set(…)`. L'affectation reste acceptée dans un `useEffect`.
 - Avertissement web « Invalid DOM property `transform` » : défaut de react-native-svg sur le web, sans effet sur iOS et Android.
 
-- **Croix sans effet, suite (1.5.2)** : l'utilisateur (iPhone, Expo Go) a précisé que le fond sombre ferme la feuille mais pas la croix, à la 2e ouverture. Les deux appellent la même fonction : c'est donc le toucher sur la croix, placée dans le `ScrollView`, qui n'arrive pas (le fond est hors du `ScrollView`). Les deux correctifs précédents (clavier, `Modal` neuve) visaient la fermeture, pas le toucher : mauvaise piste. Correctif : titre et croix hors du `ScrollView` (`flexShrink: 1` sur celui-ci). **À confirmer sur téléphone.** Leçon : demander quels gestes marchent avant de corriger.
+- **Croix sans effet, suite (1.5.2)** : l'utilisateur (iPhone, Expo Go) a précisé que le fond sombre ferme la feuille mais pas la croix, à la 2e ouverture. Les deux appellent la même fonction : c'est donc le toucher sur la croix, placée dans le `ScrollView`, qui n'arrive pas (le fond est hors du `ScrollView`). Les deux correctifs précédents (clavier, `Modal` neuve) visaient la fermeture, pas le toucher : mauvaise piste. Correctif : titre et croix hors du `ScrollView` (`flexShrink: 1` sur celui-ci). **Confirmé par l'utilisateur sur iPhone (Expo Go).** Leçon : demander quels gestes marchent avant de corriger.
 
 ## Idées pour la suite
 
