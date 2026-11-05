@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glyph, type GLYPHS } from './Icon';
 import { Button } from './ui';
+import { router } from 'expo-router';
+import { useAuth } from '@/store/auth';
 import { useOnboarding } from '@/store/onboarding';
 import { fonts, useTheme } from '@/theme';
 
@@ -21,7 +23,7 @@ const STEPS: { icon: keyof typeof GLYPHS; title: string; text: string }[] = [
   {
     icon: 'jar',
     title: 'Tes données t’appartiennent',
-    text: 'Tout reste sur ton téléphone pour l’instant. Bientôt, un compte te permettra de les sauvegarder et de les retrouver sur un autre téléphone.',
+    text: 'Tout reste sur ton téléphone. Si tu veux, un compte gratuit les sauvegarde et te permet de les retrouver sur un autre téléphone.',
   },
 ];
 
@@ -30,6 +32,7 @@ export function Onboarding() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { visible, finish } = useOnboarding();
+  const auth = useAuth();
   const [step, setStep] = useState(0);
 
   if (!visible) return null;
@@ -69,6 +72,17 @@ export function Onboarding() {
         ))}
       </View>
       <Button label={last ? 'Commencer' : 'Suivant'} onPress={last ? done : () => setStep(step + 1)} style={{ paddingVertical: 16 }} />
+      {last && auth.configured && !auth.user && (
+        <Button
+          label="Créer un compte ou me connecter"
+          variant="ghost"
+          onPress={() => {
+            done();
+            router.push('/auth');
+          }}
+          style={{ paddingVertical: 16, marginTop: 10 }}
+        />
+      )}
     </View>
   );
 }

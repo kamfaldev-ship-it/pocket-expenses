@@ -21,3 +21,5 @@ Après chaque modification (code, suppression, config), mets à jour tous les fi
 - Bug de la croix de la feuille d'ajout : correctif `Keyboard.dismiss()` dans `useGuardedClose`, à confirmer sur appareil.
 - 1.5.1 : `key={nonce}` sur la `Modal` des feuilles d'ajout, d'épargne et de budget (2e tentative sur la croix qui ne répond plus).
 - 1.5.2 : en-tête de `SheetFrame` sorti du `ScrollView` (la croix ne recevait pas le toucher à la 2e ouverture ; le fond sombre, hors du `ScrollView`, fonctionnait).
+- 1.6.0 : comptes Supabase facultatifs (`store/auth.tsx`, `app/auth.tsx`, `lib/supabase.ts`, `lib/authForm.ts`) et `mobile/supabase/schema.sql` à coller dans le SQL Editor. Variables dans `mobile/.env.local` (modèle `.env.example`). Détails dans `mobile/README.md`.
+- 1.7.0 : synchronisation avec le compte (`lib/sync.ts` pur et testé, `store/sync.tsx`). Le téléphone est la référence, il gagne en cas de conflit ; photos et thème restent locaux. Non testé contre un vrai Supabase.

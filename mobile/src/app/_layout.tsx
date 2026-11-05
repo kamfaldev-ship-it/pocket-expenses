@@ -14,6 +14,8 @@ import { LockScreen } from '@/components/LockScreen';
 import { SavingsSheet } from '@/components/SavingsSheet';
 import { Toast } from '@/components/Toast';
 import { StoreProvider, useStore } from '@/store';
+import { AuthProvider, useAuth } from '@/store/auth';
+import { SyncProvider } from '@/store/sync';
 import { LockProvider, useLock } from '@/store/lock';
 import { OnboardingProvider, useOnboarding } from '@/store/onboarding';
 import { UIProvider, useUI } from '@/store/ui';
@@ -37,6 +39,7 @@ function Shell() {
   const { ready } = useStore();
   const lock = useLock();
   const onboarding = useOnboarding();
+  const auth = useAuth();
   const { closeSheet, closeSavings } = useUI();
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_500Medium,
@@ -47,7 +50,7 @@ function Shell() {
     Figtree_600SemiBold,
     Figtree_700Bold,
   });
-  const loaded = ready && fontsLoaded && lock.loaded && onboarding.loaded;
+  const loaded = ready && fontsLoaded && lock.loaded && onboarding.loaded && auth.loaded;
   // Sheets are native modals that would sit above the lock cover, so close them when locking.
   useEffect(() => {
     if (lock.locked) {
@@ -67,6 +70,7 @@ function Shell() {
         <Stack.Screen name="recurring" options={pushed(t, 'Récurrences')} />
         <Stack.Screen name="budgets" options={pushed(t, 'Budgets')} />
         <Stack.Screen name="settings" options={pushed(t, 'Réglages')} />
+        <Stack.Screen name="auth" options={pushed(t, 'Compte')} />
       </Stack>
       <Toast />
       <Onboarding />
@@ -86,9 +90,13 @@ export default function RootLayout() {
         <ThemeProvider>
           <LockProvider>
             <UIProvider>
-              <OnboardingProvider>
-                <Shell />
-              </OnboardingProvider>
+              <AuthProvider>
+                <SyncProvider>
+                  <OnboardingProvider>
+                    <Shell />
+                  </OnboardingProvider>
+                </SyncProvider>
+              </AuthProvider>
             </UIProvider>
           </LockProvider>
         </ThemeProvider>

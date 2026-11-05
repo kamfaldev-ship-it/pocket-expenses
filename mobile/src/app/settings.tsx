@@ -11,15 +11,27 @@ import { exportCsv, exportJson, pickBackup } from '@/lib/backupFiles';
 import { newId } from '@/lib/ids';
 import type { ThemePref, TxType } from '@/lib/types';
 import { useStore } from '@/store';
+import { useAuth } from '@/store/auth';
+import { useSync } from '@/store/sync';
 import { useLock } from '@/store/lock';
 import { useUI } from '@/store/ui';
 import { fonts, useTheme } from '@/theme';
+
+const SYNC_LABEL = {
+  off: '',
+  idle: 'Données synchronisées',
+  syncing: 'Synchronisation…',
+  error: 'Synchronisation impossible pour le moment. Réessaie.',
+  paused: 'Synchronisation en pause : choisis les données à garder.',
+} as const;
 
 export default function Settings() {
   const t = useTheme();
   const { state, dispatch } = useStore();
   const { showToast } = useUI();
   const lock = useLock();
+  const auth = useAuth();
+  const sync = useSync();
   const [name, setName] = useState('');
   const [kind, setKind] = useState<TxType>('out');
   const [color, setColor] = useState(COLORS[0]);
@@ -70,6 +82,22 @@ export default function Settings() {
     }
   };
 
+  const signOut = async () => {
+    const r = await auth.signOut();
+    showToast(r.error || 'Déconnecté');
+  };
+
+  const deleteAccount = () =>
+    confirmAction(
+      'Supprimer ton compte ?',
+      'Ton compte et les données stockées en ligne seront supprimés définitivement. Les données de ce téléphone restent.',
+      'Supprimer',
+      async () => {
+        const r = await auth.deleteAccount();
+        showToast(r.error || 'Compte supprimé');
+      },
+    );
+
   const importBackup = () =>
     run(async () => {
       const res = await pickBackup();
@@ -89,7 +117,35 @@ export default function Settings() {
 
   return (
     <Screen pushed>
-      <Card style={{ marginTop: 0 }}>
+      {auth.configured && (
+        <Card style={{ marginTop: 0 }}>
+          <H3 style={{ marginBottom: 6 }}>Compte</H3>
+          {auth.user ? (
+            <>
+              <Text style={{ fontFamily: fonts.body400, color: t.mute }}>Connecté avec {auth.user.email}</Text>
+              <Text
+                accessibilityLiveRegion="polite"
+                style={{ fontFamily: fonts.body600, fontSize: 13, color: sync.status === 'error' ? t.out : t.mute, marginTop: 4, marginBottom: 14 }}>
+                {SYNC_LABEL[sync.status]}
+              </Text>
+              <View style={{ gap: 10 }}>
+                <Button label="Synchroniser maintenant" variant="ghost" onPress={() => sync.syncNow()} />
+                <Button label="Se déconnecter" variant="ghost" onPress={signOut} />
+                <Button label="Supprimer mon compte" variant="danger" onPress={deleteAccount} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={{ fontFamily: fonts.body400, color: t.mute, marginBottom: 14 }}>
+                Facultatif. Un compte sauvegarde tes données en ligne et les retrouve sur un autre téléphone.
+              </Text>
+              <Button label="Se connecter ou créer un compte" variant="ghost" onPress={() => router.push('/auth')} />
+            </>
+          )}
+        </Card>
+      )}
+
+      <Card style={auth.configured ? undefined : { marginTop: 0 }}>
         <H3 style={{ marginBottom: 12 }}>Apparence</H3>
         <Segmented<ThemePref>
           value={state.theme}
@@ -267,7 +323,9 @@ export default function Settings() {
       <Card>
         <H3 style={{ marginBottom: 6 }}>Données</H3>
         <Text style={{ fontFamily: fonts.body400, color: t.mute, marginBottom: 14 }}>
-          {"Tout reste sur ton téléphone, y compris les photos. Exporte une sauvegarde pour changer de téléphone ou garder une copie (les photos n’y sont pas incluses)."}
+          {auth.user
+            ? 'Tes données sont enregistrées sur ton téléphone et sur ton compte. Les photos de reçus restent sur ce téléphone. « Tout effacer » efface aussi les données du compte.'
+            : 'Tout reste sur ton téléphone, y compris les photos. Exporte une sauvegarde pour changer de téléphone ou garder une copie (les photos n’y sont pas incluses).'}
         </Text>
         <View style={{ gap: 10 }}>
           <Button label="Exporter une sauvegarde" variant="ghost" onPress={() => run(() => exportJson(state))} />

@@ -8,13 +8,22 @@ Suivi de dépenses en React Native + Expo (iOS et Android). Interface en frança
 cd mobile
 npm install            # .npmrc active legacy-peer-deps
 npx expo start -c      # puis scanner le QR code avec Expo Go (SDK 58)
-npm test               # Jest (53 tests)
+npm test               # Jest (70 tests)
 npm run typecheck
 npx eslint src
 npx expo-doctor
 ```
 
 Redémarre le serveur avec `-c` après chaque modification : Metro ne détecte pas les changements dans ce dossier (l'espace à la fin de « TOOL PERSO »). Renommer le dossier sans l'espace réglerait sans doute le problème.
+
+## Supabase (comptes et base de données)
+
+1. Supabase > SQL Editor > New query : colle `mobile/supabase/schema.sql` en entier, puis Run (rejouable, ne supprime rien).
+2. Supabase > Project Settings > API : copie « Project URL » et la clé « anon / publishable » dans `mobile/.env.local` (modèle : `.env.example`). Jamais la clé `service_role`.
+3. Redémarre avec `npx expo start -c` (les variables `EXPO_PUBLIC_*` sont lues au démarrage).
+4. Authentication > URL Configuration : ajoute `pocket://` aux Redirect URLs (liens des emails). Authentication > Providers > Email : « Confirm email » activé ou non (l'app gère les deux).
+
+Sans `.env.local`, l'app marche comme avant et n'affiche aucun écran de compte.
 
 ## Publier
 
@@ -25,6 +34,8 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - `src/app/` : routes expo-router. Onglets dans `(tabs)/` (accueil, rapport, historique). Écrans poussés : `settings` (engrenage en haut de l'accueil), `savings`, `budgets`, `recurring`.
 - `src/lib/` : logique pure et testée (dates et périodes, format, sélecteurs, `savings`, `recurring`, `budgets`, `backup`, `daily`, `features`, `photos`).
 - `src/store/` : `index.tsx` (reducer + persistance AsyncStorage, clé `pocket.v1`), `ui.tsx` (mois, feuilles, toast), `lock.tsx` (verrouillage, clé `pocket.lock`), `actions.ts` (suppressions avec « Annuler »).
+- `src/lib/supabase.ts` (client, session dans AsyncStorage), `src/lib/authForm.ts` (validation et erreurs en français, testé), `src/store/auth.tsx` (`useAuth` : session, connexion, inscription, mot de passe oublié, déconnexion, suppression du compte), `src/app/auth.tsx` (écran Connexion / Inscription / Mot de passe oublié), `supabase/schema.sql`.
+- Synchronisation : `src/lib/sync.ts` (lignes ↔ état, différences, pur et testé), `src/store/sync.tsx` (`useSync` : statut, `syncNow`).
 - `src/components/`, `src/theme/` : composants et jetons clair/sombre (violet `#6C63FF`, Bricolage Grotesque + Figtree).
 
 ## Modèle de données (version 3)
@@ -40,8 +51,21 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - `budgets` : limite mensuelle par id de catégorie.
 - Sauvegarde JSON `{ app: 'pocket', version: 3, data }`. Les versions 1 et 2 s'importent encore.
 
+## Base de données Supabase (`supabase/schema.sql`)
+
+Une ligne par objet de l'`AppState`, toujours liée à `user_id` (cascade à la suppression du compte). RLS partout : on ne voit que ses lignes. Rien pour le rôle `anon`.
+
+- `profiles` (id = auth.users.id, display_name, theme), créé par un trigger à l'inscription.
+- `categories` (user_id, id texte, kind, name, color, icon, position), `transactions` (id bigint, type, amount numeric(14,2), cat, date, note, photo), `savings_goals`, `savings_entries` (goal_id, remis à null si l'objectif est supprimé), `budgets` (user_id, cat, amount), `recurring_rules` (day 1-28, start_month, last_applied).
+- Ids numériques = ceux de `newId()` (ms × 1000, tient dans un bigint) : la synchro pourra les envoyer tels quels.
+- Bucket privé `receipts` (5 Mo, images) : chemin `<user_id>/<fichier>`, policies par dossier.
+- `delete_my_account()` (security definer) : supprime le compte et tout en cascade. Les fichiers du bucket ne partent pas en cascade : à effacer côté app quand la synchro des photos existera.
+- **Synchronisation (1.7.0)** : l'app lit et écrit toujours AsyncStorage ; avec un compte, une copie est envoyée au serveur (détails dans Décisions et Patterns). Synchronisés : catégories, opérations, objectifs, versements, budgets, récurrences. Pas synchronisés : photos de reçus et thème (réglages de l'appareil). Le bucket `receipts` est prêt mais inutilisé.
+
 ## Historique des versions
 
+- **1.7.0** : synchronisation des données avec le compte (envoi des modifications après 1,5 s, reprise au retour au premier plan, choix « garder ce téléphone / le compte » au premier lien d'un appareil). Carte Compte : statut et « Synchroniser maintenant ». Photos non synchronisées.
+- **1.6.0** : comptes Supabase (facultatifs) : écran Connexion / Inscription / Mot de passe oublié, carte « Compte » dans les réglages (déconnexion, suppression du compte), bouton sur le dernier écran d'accueil, schéma SQL complet. Pas de synchronisation des données.
 - **1.0** : migration de l'app web vers Expo (SDK 57), design fidèle, repartir de zéro sans migration de données.
 - **1.1** : caisse économies, transactions récurrentes, export/import JSON et CSV, passe accessibilité.
 - **1.2** : budgets par catégorie, recherche dans l'historique, plusieurs objectifs d'épargne, verrouillage Face ID.
@@ -56,6 +80,17 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **1.2.1** : suppression de la partie web (`index.html`, `www/`, `ios/` Capacitor, PWA, config Vercel). Aucun changement de fonction.
 
 ## Décisions
+
+- **Synchronisation (1.7.0)** : « go » de l'utilisateur sur ma proposition. Le téléphone reste la référence (l'app marche hors ligne, AsyncStorage inchangé). Règles :
+  - *Premier lien d'un appareil avec un compte* : serveur vide → on envoie ; téléphone vide → on reprend le compte ; mêmes données → rien ; sinon une alerte demande « Garder ce téléphone », « Garder le compte » ou « Plus tard » (pause jusqu'à « Synchroniser maintenant »). Jamais de fusion automatique : deux jeux de données différents donneraient des doublons de catégories et d'opérations.
+  - *Ensuite* : les modifications locales sont envoyées ligne par ligne (seulement ce qui a changé). Au retour au premier plan, on relit le serveur : si un autre appareil a écrit et que ce téléphone n'a rien changé, on reprend ; si les deux ont changé, **ce téléphone gagne** (le plus récent, car c'est celui que l'utilisateur tient en main).
+  - *Photos hors synchro* : fichiers locaux, la colonne `photo` n'est pas envoyée ; une reprise du compte garde les photos locales par id d'opération. Raison : envoi de fichiers et reprise hors ligne demandent leur propre travail, à faire à part.
+  - « Tout effacer » efface aussi le compte quand on est connecté (cohérent avec « ce téléphone gagne ») ; le texte des réglages le dit.
+  - Thème non synchronisé : réglage d'appareil.
+
+- **Comptes Supabase (1.6.0)** : demandé par l'utilisateur (SQL à déployer + pages d'inscription et de connexion). Le compte reste facultatif, conformément à l'onboarding 1.5.0 : l'app marche sans, aucun écran forcé. Un seul écran `auth` avec trois modes plutôt que trois routes (moins de navigation, le formulaire garde l'email saisi). Mot de passe : 8 caractères, lettres et chiffres (règle côté app ; régler aussi la longueur minimale dans Supabase > Auth). Supprimer son compte est dans les réglages car l'App Store l'exige dès qu'on peut en créer un. Clé « anon » seulement dans l'app : la sécurité repose sur la RLS. Sans variables d'environnement, tout le dispositif est invisible.
+- **Synchronisation non faite (1.6.0)** : le périmètre demandé était la base et l'authentification. Brancher la synchro touche le reducer, les photos et la résolution des conflits : à décider avec l'utilisateur (une direction ? dernier modifié gagne ?).
+- **`cat` sans clé étrangère (1.6.0)** : l'app réaffecte les opérations vers « Autre » à la suppression d'une catégorie, et une synchro peut envoyer les lignes dans le désordre ; une clé étrangère rendrait ces envois fragiles.
 
 - **Onboarding (1.5.0)** : demandé par l'utilisateur car une base Supabase va être ajoutée. 3 écrans, « Passer » possible, jamais de compte forcé : le texte annonce seulement qu'un compte viendra, sans promettre de date. Pas d'écran de connexion tant que Supabase n'est pas branché. Ce sera l'endroit où brancher l'inscription.
 
@@ -91,6 +126,15 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 
 ## Patterns utilisés
 
+- **Synchro par différence avec une base** : `baseline` = dernier état connu du serveur (AsyncStorage `pocket.sync.<uid>`). `diffRows(baseline, local)` donne les `upsert` et `remove` par table ; la base n'est mise à jour qu'après un envoi réussi, donc une panne en cours de route se rejoue sans risque (upsert et suppression idempotents). Tout état serveur passe par `canonical()` (état de l'app puis lignes) avant comparaison, pour ignorer l'ordre et les types renvoyés.
+- **Nettoyage avant envoi** (`toRows`) : couleurs, longueurs, montants arrondis à 2 décimales, pour qu'une ligne invalide d'une sauvegarde importée ne bloque pas toute la synchro (une contrainte CHECK refuse la requête entière).
+- **Pagination** : Supabase renvoie 1000 lignes au plus par requête, `fetchRemote` lit par pages.
+- **Une synchro à la fois** : `running` + `queued` ; un déclenchement pendant un tour est rejoué après. Après avoir repris le compte, `stateRef` est mis à jour tout de suite pour qu'un tour en file n'envoie pas l'ancien état.
+
+- **Fonction facultative derrière la configuration** : `supabaseConfigured` (variables `EXPO_PUBLIC_*` présentes) ; `useAuth().configured` masque tout l'interface de compte sinon. Même esprit que `FEATURES`.
+- **Résultat `{ error: string }` plutôt qu'exceptions** : `store/auth.tsx` traduit chaque erreur Supabase via `frenchAuthError` ; l'interface n'affiche jamais de texte technique.
+- **SQL rejouable** : `create … if not exists`, `drop policy if exists` puis `create policy`, boucle `do $$` pour les triggers et la RLS des tables.
+
 - **Onboarding hors données** : `store/onboarding.tsx` (clé `pocket.onboarded`, comme `pocket.lock`, hors sauvegarde JSON). `components/Onboarding.tsx` est un calque absolu dans `Shell`, pas une `Modal`, pour ne pas se battre avec les feuilles natives. Le splash reste affiché tant que le drapeau n'est pas lu (pas de flash).
 
 - **Période dérivée** : `useUI().period` (`from`, `to`, `isMonth`, `label`) vient de `range ?? monthRange(month)`. Les sélecteurs (`monthStats`, `reportRows`, `budgetRows`) acceptent un mois (`'2026-10'`) ou une période (`PeriodInput`), donc les anciens appels et tests ne changent pas.
@@ -116,6 +160,14 @@ Expo Go sert au développement seulement. Pour l'App Store : `eas build --profil
 - **Écran de verrouillage dans un `Modal`** : les feuilles sont des modales natives qui passeraient au-dessus d'un simple calque, donc on les ferme au verrouillage.
 
 ## Erreurs rencontrées et corrigées
+
+- **Risque corrigé avant livraison (1.7.0)** : après une reprise du compte, un tour de synchro en file pouvait relire l'ancien état (le rendu n'avait pas encore eu lieu) et écraser le serveur avec. Correctif : `stateRef.current` mis à jour dans `adopt`.
+- **Non vérifié sur appareil (1.7.0)** : la synchro n'a pas été testée contre un vrai projet Supabase. Les tests couvrent la logique pure (`lib/sync.test.ts`), pas le réseau. À essayer : inscription, ajout d'une opération, vérifier la ligne dans Table Editor, deuxième téléphone ou réinstallation.
+
+- **Inscription avec une adresse déjà utilisée (1.6.0)** : avec « Confirm email » actif, Supabase ne renvoie pas d'erreur (pour ne pas révéler quels emails existent) mais un utilisateur dont `identities` est vide. L'app le détecte et dit « Cette adresse a déjà un compte ».
+- `ref` sur un composant de champ (React 19) : le type est `React.ComponentRef<typeof TextInput>`, pas `TextInput` (sinon erreur TS sur `.focus()`).
+- Route `/auth` refusée par `tsc` : les routes typées se régénèrent au démarrage du serveur (`npx expo start` une fois).
+- `supabase.rpc(...)` n'a pas de `.catch` : l'appel est dans un `try/catch`.
 
 - **Croix de la feuille d'ajout sans effet à la 2e ouverture (1.5.0)** : symptôme rapporté, non reproduit (pas de simulateur iOS ni de navigateur disponible pendant la session). La logique d'état (`openSheet`/`closeSheet`, `key` par `nonce`) est correcte à la lecture ; la piste retenue est le clavier : le champ montant a `autoFocus`, et une `Modal` fermée clavier levé ne reçoit pas l'événement de masquage, ce qui laisse `KeyboardAvoidingView` / `InputAccessoryView` dans un état périmé à l'ouverture suivante. Correctif : `Keyboard.dismiss()` dans `useGuardedClose` (donc pour toutes les feuilles). **Insuffisant** (2 fois) : le bug persistait (la croix ne fait plus rien à la 2e ouverture). Deuxième piste (1.5.1) : `Modal` natif réutilisé entre deux ouvertures, avec un état de fermeture iOS/Android périmé. Correctif : `key={nonce}` sur la `Modal` elle-même (`AddSheet`, `SavingsSheet`, `BudgetSheet`), donc une fenêtre native neuve à chaque ouverture. Toujours à confirmer sur téléphone, après `npx expo start -c` (Metro ne voit pas les changements dans ce dossier) ; si le bug persiste, regarder `KeyboardDoneBar` (même `nativeID` monté dans plusieurs feuilles).
 
